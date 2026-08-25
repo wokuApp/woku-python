@@ -40,6 +40,28 @@ def test_trackers_create_posts_with_idempotency_key() -> None:
 
 
 @respx.mock
+def test_trackers_assign_to_woku_upserts_with_idempotency_key() -> None:
+    route = respx.post(f"{BASE}/v1/external-trackers/wokus/w1").mock(
+        return_value=httpx.Response(200, json={"name": "crm", "value": "TX-1"})
+    )
+    woku().trackers.assign_to_woku("w1", {"name": "crm", "value": "TX-1"})
+    assert _body(route.calls.last.request) == {"name": "crm", "value": "TX-1"}
+    assert route.calls.last.request.headers.get("x-woku-idempotency-key")
+
+
+@respx.mock
+def test_trackers_remove_from_woku_url_encodes_tracker_name() -> None:
+    route = respx.delete(f"{BASE}/v1/external-trackers/wokus/w1/crm%20id").mock(
+        return_value=httpx.Response(200, json={"deleted": True})
+    )
+    woku().trackers.remove_from_woku("w1", "crm id")
+    assert (
+        route.calls.last.request.url.raw_path
+        == b"/v1/external-trackers/wokus/w1/crm%20id"
+    )
+
+
+@respx.mock
 def test_nps_tools_create_and_get_singular_path() -> None:
     respx.post(f"{BASE}/v1/nps-tools").mock(
         return_value=httpx.Response(200, json={"_id": "nt1", "name": "Survey"})
@@ -54,15 +76,37 @@ def test_nps_tools_create_and_get_singular_path() -> None:
 
 
 @respx.mock
-def test_nps_send_invitations_posts_with_idempotency_key() -> None:
+def test_nps_send_invitations_posts_the_exact_wire_body() -> None:
     route = respx.post(f"{BASE}/v1/nps/invitations").mock(
         return_value=httpx.Response(202, json={"accepted": 2, "rejected": 0})
     )
     result = woku().nps.send_invitations(
-        {"npsToolId": "nt1", "recipients": [{"email": "a@b.c"}, {"email": "d@e.f"}]}
+        {"channel": "email", "npsToolId": "nt1", "recipients": ["a@b.c", "d@e.f"]}
     )
     assert result["accepted"] == 2
+    # The server DTO requires channel + string[] recipients; assert the exact
+    # shape so a wrong example can never silently reach the wire again.
+    assert _body(route.calls.last.request) == {
+        "channel": "email",
+        "npsToolId": "nt1",
+        "recipients": ["a@b.c", "d@e.f"],
+    }
     assert route.calls.last.request.headers.get("x-woku-idempotency-key")
+
+
+@respx.mock
+def test_pydantic_model_body_serializes_by_alias_dropping_unset() -> None:
+    from woku._generated.models import CreateExternalTrackerDefinitionDTO
+
+    route = respx.post(f"{BASE}/v1/external-trackers").mock(
+        return_value=httpx.Response(200, json={"_id": "trk1"})
+    )
+    # A typed model with an unset optional field must serialize to only the set
+    # fields (exclude_unset), matching the dict path.
+    woku().trackers.create(
+        CreateExternalTrackerDefinitionDTO(name="Store", system="retail")
+    )
+    assert _body(route.calls.last.request) == {"name": "Store", "system": "retail"}
 
 
 @respx.mock

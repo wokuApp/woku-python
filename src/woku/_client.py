@@ -17,6 +17,7 @@ from ._base_client import (
     clean_query,
     parse_body,
     request_id_from,
+    retry_after_from_headers,
     serialize_body,
 )
 from ._exceptions import WokuAPIError, WokuConnectionError, WokuTimeoutError
@@ -163,7 +164,10 @@ class Woku(BaseClient):
             if 200 <= status < 300:
                 return parse_body(response.text)
             api_error = WokuAPIError.from_response(
-                status, parse_body(response.text), request_id_from(response.headers)
+                status,
+                parse_body(response.text),
+                request_id_from(response.headers),
+                retry_after_from_headers(response.headers),
             )
             if retryable and attempt < max_retries and status in RETRYABLE_STATUS:
                 time.sleep(self._backoff(attempt, api_error))
@@ -305,7 +309,10 @@ class AsyncWoku(BaseClient):
             if 200 <= status < 300:
                 return parse_body(response.text)
             api_error = WokuAPIError.from_response(
-                status, parse_body(response.text), request_id_from(response.headers)
+                status,
+                parse_body(response.text),
+                request_id_from(response.headers),
+                retry_after_from_headers(response.headers),
             )
             if retryable and attempt < max_retries and status in RETRYABLE_STATUS:
                 await asyncio.sleep(self._backoff(attempt, api_error))

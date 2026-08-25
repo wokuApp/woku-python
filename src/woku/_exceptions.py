@@ -51,6 +51,9 @@ class WokuAPIError(WokuError):
     request_id: str | None
     #: Parsed response body (or the raw text when it was not JSON).
     body: WokuErrorBody
+    #: Seconds to wait before retrying, from the ``Retry-After`` response header
+    #: (or a ``retryAfter`` body field as a fallback), when the server sent one.
+    retry_after_seconds: float | None
 
     def __init__(
         self,
@@ -59,11 +62,17 @@ class WokuAPIError(WokuError):
         message: str,
         request_id: str | None = None,
         code: str | None = None,
+        retry_after_seconds: float | None = None,
     ) -> None:
         super().__init__(message, code=code or _code_for_status(status))
         self.status = status
         self.body = body
         self.request_id = request_id
+        self.retry_after_seconds = (
+            retry_after_seconds
+            if retry_after_seconds is not None
+            else _retry_after_from_body(body)
+        )
 
     @classmethod
     def from_response(
@@ -71,15 +80,20 @@ class WokuAPIError(WokuError):
         status: int,
         body: WokuErrorBody,
         request_id: str | None = None,
+        retry_after_seconds: float | None = None,
     ) -> WokuAPIError:
         """Build the most specific error subclass for a status + body."""
         message = _message_from(status, body, request_id)
         subclass = _STATUS_TO_CLASS.get(status)
         if subclass is not None:
-            return subclass(status, body, message, request_id)
+            return subclass(
+                status, body, message, request_id, None, retry_after_seconds
+            )
         if status >= 500:
-            return InternalServerError(status, body, message, request_id)
-        return cls(status, body, message, request_id)
+            return InternalServerError(
+                status, body, message, request_id, None, retry_after_seconds
+            )
+        return cls(status, body, message, request_id, None, retry_after_seconds)
 
 
 class BadRequestError(WokuAPIError):
@@ -109,25 +123,6 @@ class UnprocessableEntityError(WokuAPIError):
 class RateLimitError(WokuAPIError):
     """429 - rate limited. ``retry_after_seconds`` mirrors ``Retry-After``."""
 
-    retry_after_seconds: float | None
-
-    def __init__(
-        self,
-        status: int,
-        body: WokuErrorBody,
-        message: str,
-        request_id: str | None = None,
-        code: str | None = None,
-    ) -> None:
-        super().__init__(status, body, message, request_id, code)
-        self.retry_after_seconds = None
-        if isinstance(body, dict):
-            retry_after = body.get("retryAfter")
-            if isinstance(retry_after, (int, float)) and not isinstance(
-                retry_after, bool
-            ):
-                self.retry_after_seconds = float(retry_after)
-
 
 class InternalServerError(WokuAPIError):
     """5xx - the server failed to process the request."""
@@ -152,6 +147,14 @@ _STATUS_TO_CODE: dict[int, str] = {
     422: "unprocessable_entity",
     429: "rate_limited",
 }
+
+
+def _retry_after_from_body(body: WokuErrorBody) -> float | None:
+    if isinstance(body, dict):
+        value = body.get("retryAfter")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+    return None
 
 
 def _code_for_status(status: int) -> str:

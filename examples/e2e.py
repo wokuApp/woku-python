@@ -46,7 +46,7 @@ def main() -> None:
     recipient = os.environ.get("WOKU_E2E_RECIPIENT")
     if os.environ.get("WOKU_E2E_ALLOW_SEND") == "true" and recipient:
         result = woku.nps.send_invitations(
-            {"npsToolId": tool_id, "recipients": [{"email": recipient}]}
+            {"channel": "email", "npsToolId": tool_id, "recipients": [recipient]}
         )
         print("sent:", result)
     else:

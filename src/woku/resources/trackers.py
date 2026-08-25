@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
-from ..models import EntitiesByTrackers, Tracker
+from ..models import EntitiesByTrackers, Tracker, WokuRecord
 from ..types import (
+    AssignTrackerByNameParams,
     CreateTrackerParams,
     SearchEntitiesByTrackersParams,
     UpdateTrackerParams,
@@ -16,10 +18,20 @@ from ..types import (
 if TYPE_CHECKING:
     from .._client import AsyncWoku, Woku
 
+#: A VoC entity type that can carry tracker values.
+TrackerEntityType = Literal["nps", "csat", "ces", "form", "flow"]
+
 
 class ListTrackersParams(TypedDict, total=False):
     includeInactive: bool
     includeUsage: bool
+    page: int
+    limit: int
+
+
+class SearchWokusByTrackerParams(TypedDict, total=False):
+    name: str
+    value: str
     page: int
     limit: int
 
@@ -99,6 +111,92 @@ class Trackers:
             options=options,
         )
 
+    def list_woku_values(
+        self, woku_id: str, options: RequestOptions | None = None
+    ) -> list[WokuRecord]:
+        """List the tracker values assigned to a woku."""
+        return self._client.request(
+            "get", f"/v1/external-trackers/wokus/{woku_id}", options=options
+        )
+
+    def assign_to_woku(
+        self,
+        woku_id: str,
+        body: AssignTrackerByNameParams,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Assign (upsert) a tracker value to a woku by tracker name."""
+        return self._client.request(
+            "post",
+            f"/v1/external-trackers/wokus/{woku_id}",
+            body=body,
+            idempotent=True,
+            options=options,
+        )
+
+    def remove_from_woku(
+        self,
+        woku_id: str,
+        tracker_name: str,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Remove a tracker value from a woku by tracker name."""
+        return self._client.request(
+            "delete",
+            f"/v1/external-trackers/wokus/{woku_id}/{quote(tracker_name, safe='')}",
+            options=options,
+        )
+
+    def search_wokus(
+        self,
+        params: SearchWokusByTrackerParams,
+        options: RequestOptions | None = None,
+    ) -> SyncPage[WokuRecord]:
+        """Search wokus by an exact (tracker name, value) pair (paginated)."""
+        return self._client.get_page("/v1/external-trackers/search", params, options)
+
+    def list_entity_values(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        options: RequestOptions | None = None,
+    ) -> list[WokuRecord]:
+        """List the tracker values assigned to a VoC entity."""
+        return self._client.request(
+            "get", f"/v1/external-trackers/{entity_type}/{entity_id}", options=options
+        )
+
+    def assign_to_entity(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        body: AssignTrackerByNameParams,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Assign (upsert) a tracker value to a VoC entity by tracker name."""
+        return self._client.request(
+            "post",
+            f"/v1/external-trackers/{entity_type}/{entity_id}",
+            body=body,
+            idempotent=True,
+            options=options,
+        )
+
+    def remove_from_entity(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        tracker_name: str,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Remove a tracker value from a VoC entity by tracker name."""
+        return self._client.request(
+            "delete",
+            f"/v1/external-trackers/{entity_type}/{entity_id}"
+            f"/{quote(tracker_name, safe='')}",
+            options=options,
+        )
+
 
 class AsyncTrackers:
     """Async twin of :class:`Trackers`."""
@@ -174,5 +272,93 @@ class AsyncTrackers:
             "post",
             "/v1/external-trackers/search-entities",
             body=body,
+            options=options,
+        )
+
+    async def list_woku_values(
+        self, woku_id: str, options: RequestOptions | None = None
+    ) -> list[WokuRecord]:
+        """List the tracker values assigned to a woku."""
+        return await self._client.request(
+            "get", f"/v1/external-trackers/wokus/{woku_id}", options=options
+        )
+
+    async def assign_to_woku(
+        self,
+        woku_id: str,
+        body: AssignTrackerByNameParams,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Assign (upsert) a tracker value to a woku by tracker name."""
+        return await self._client.request(
+            "post",
+            f"/v1/external-trackers/wokus/{woku_id}",
+            body=body,
+            idempotent=True,
+            options=options,
+        )
+
+    async def remove_from_woku(
+        self,
+        woku_id: str,
+        tracker_name: str,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Remove a tracker value from a woku by tracker name."""
+        return await self._client.request(
+            "delete",
+            f"/v1/external-trackers/wokus/{woku_id}/{quote(tracker_name, safe='')}",
+            options=options,
+        )
+
+    async def search_wokus(
+        self,
+        params: SearchWokusByTrackerParams,
+        options: RequestOptions | None = None,
+    ) -> AsyncPage[WokuRecord]:
+        """Search wokus by an exact (tracker name, value) pair (paginated)."""
+        return await self._client.get_page(
+            "/v1/external-trackers/search", params, options
+        )
+
+    async def list_entity_values(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        options: RequestOptions | None = None,
+    ) -> list[WokuRecord]:
+        """List the tracker values assigned to a VoC entity."""
+        return await self._client.request(
+            "get", f"/v1/external-trackers/{entity_type}/{entity_id}", options=options
+        )
+
+    async def assign_to_entity(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        body: AssignTrackerByNameParams,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Assign (upsert) a tracker value to a VoC entity by tracker name."""
+        return await self._client.request(
+            "post",
+            f"/v1/external-trackers/{entity_type}/{entity_id}",
+            body=body,
+            idempotent=True,
+            options=options,
+        )
+
+    async def remove_from_entity(
+        self,
+        entity_type: TrackerEntityType,
+        entity_id: str,
+        tracker_name: str,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Remove a tracker value from a VoC entity by tracker name."""
+        return await self._client.request(
+            "delete",
+            f"/v1/external-trackers/{entity_type}/{entity_id}"
+            f"/{quote(tracker_name, safe='')}",
             options=options,
         )

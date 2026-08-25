@@ -53,7 +53,7 @@ tool = woku.nps_tools.create(
     {"name": "Post-purchase", "npsMessage": "How likely are you to recommend us?"}
 )
 woku.nps.send_invitations(
-    {"npsToolId": tool["_id"], "recipients": [{"email": "ana@example.com"}]}
+    {"channel": "email", "npsToolId": tool["_id"], "recipients": ["ana@example.com"]}
 )
 
 # Read delivery + response rate.

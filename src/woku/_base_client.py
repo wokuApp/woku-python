@@ -7,6 +7,8 @@ import os
 import random
 import uuid
 from collections.abc import Mapping
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -89,22 +91,32 @@ class BaseClient:
 
     def _backoff(self, attempt: int, api_error: WokuAPIError | None = None) -> float:
         """Honor ``Retry-After`` (seconds) when present, else full jitter."""
-        retry_after = _retry_after_seconds(api_error)
+        retry_after = api_error.retry_after_seconds if api_error is not None else None
         if retry_after is not None:
             return min(retry_after, RETRY_CAP_SECONDS)
         ceiling = min(RETRY_CAP_SECONDS, RETRY_BASE_SECONDS * (2**attempt))
         return random.random() * ceiling
 
 
-def _retry_after_seconds(api_error: WokuAPIError | None) -> float | None:
-    if api_error is None:
+def retry_after_from_headers(headers: Mapping[str, str]) -> float | None:
+    """Parse ``Retry-After`` (a number of seconds or an HTTP date)."""
+    raw = headers.get("retry-after")
+    if not raw:
         return None
-    body = api_error.body
-    if isinstance(body, dict):
-        value = body.get("retryAfter")
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
-    return None
+    raw = raw.strip()
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        pass
+    try:
+        when = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if when is None:
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return max(0.0, (when - datetime.now(timezone.utc)).total_seconds())
 
 
 def serialize_body(body: Any) -> Any:

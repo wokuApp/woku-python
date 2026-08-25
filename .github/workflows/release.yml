@@ -26,6 +26,15 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Verify the release tag matches the package version
+        run: |
+          version=$(uv run python -c "from woku import __version__; print(__version__)")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "Release tag '$tag' does not match woku version '$version'." >&2
+            exit 1
+          fi
+
       - name: Verify gate before publishing
         run: |
           uv run ruff check .
