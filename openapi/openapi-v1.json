@@ -1,0 +1,6773 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "description": "Returns { ok: true } when the v1 namespace is reachable. Unauthenticated.",
+        "operationId": "V1Controller_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "v1 is reachable"
+          }
+        },
+        "summary": "V1 namespace healthcheck",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/external-trackers": {
+      "get": {
+        "operationId": "ExternalTrackersController_listCompanyTrackers",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "required": false,
+            "in": "query",
+            "description": "Include deactivated tracker definitions in the list.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeUsage",
+            "required": false,
+            "in": "query",
+            "description": "When true, each item includes a `usageCount` field (number of Woku assignments that reference the definition).",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page (1-based).",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of tracker definitions"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List external tracker definitions of the caller company",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      },
+      "post": {
+        "description": "The company and creator are resolved server-side from the caller key. Tracker names are unique per company.",
+        "operationId": "ExternalTrackersController_createTracker",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the create safe to retry. A retry with the same key returns the original result instead of creating again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExternalTrackerDefinitionDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tracker definition created"
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          },
+          "409": {
+            "description": "Tracker name already in use"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an external tracker definition in the company catalog",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/wokus/{wokuId}": {
+      "get": {
+        "operationId": "ExternalTrackersController_listWokuTrackers",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List tracker values assigned to a Woku",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      },
+      "post": {
+        "description": "Idempotent: if (wokuId, trackerName) already has a value, it is overwritten. Resolves trackerId server-side.",
+        "operationId": "ExternalTrackersController_assignByName",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignWokuExternalTrackerByNameDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Value assigned or updated"
+          },
+          "400": {
+            "description": "Tracker is inactive or validation error"
+          },
+          "403": {
+            "description": "Woku belongs to another company"
+          },
+          "404": {
+            "description": "Woku or tracker name not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign (upsert) a tracker value to a Woku by tracker name",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/wokus/{wokuId}/{trackerName}": {
+      "delete": {
+        "operationId": "ExternalTrackersController_removeByName",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "trackerName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Value removed"
+          },
+          "404": {
+            "description": "Tracker name or assignment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a tracker value from a Woku by tracker name",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/search": {
+      "get": {
+        "operationId": "ExternalTrackersController_search",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "query",
+            "description": "External tracker name (e.g. \"trr\") to look up.",
+            "schema": {
+              "maxLength": 60,
+              "type": "string"
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "in": "query",
+            "description": "Exact value to match against the tracker.",
+            "schema": {
+              "maxLength": 500,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page (1-based).",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search Woku tracker assignments matching (name, value) within the company. Returns paginated WokuExternalTracker entries — caller can map .wokuId to fetch full Wokus.",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/search-entities": {
+      "post": {
+        "description": "Returns the VoC entities (nps/csat/ces/form/flow) whose tracker assignments match ALL the given filters. Response carries entity ids and the matched (name, value) pairs; map the ids to fetch the entities. Woku is not searchable here; use GET /search for Woku.",
+        "operationId": "ExternalTrackersController_searchEntities",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchEntitiesByTrackersDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matching entities"
+          },
+          "404": {
+            "description": "A filter names an unknown tracker"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search VoC entities by tracker filters (AND, partial match)",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/{id}": {
+      "get": {
+        "operationId": "ExternalTrackersController_getTracker",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tracker definition"
+          },
+          "404": {
+            "description": "Tracker not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one tracker definition (including inactive)",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      },
+      "patch": {
+        "operationId": "ExternalTrackersController_updateTracker",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExternalTrackerDefinitionDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tracker definition updated"
+          },
+          "404": {
+            "description": "Tracker not found"
+          },
+          "409": {
+            "description": "Tracker name already in use"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a tracker definition (name, system, description)",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/{id}/activate": {
+      "patch": {
+        "operationId": "ExternalTrackersController_activateTracker",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tracker activated"
+          },
+          "404": {
+            "description": "Tracker not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-activate a deactivated tracker definition",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/{id}/deactivate": {
+      "patch": {
+        "operationId": "ExternalTrackersController_deactivateTracker",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tracker deactivated"
+          },
+          "404": {
+            "description": "Tracker not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate a tracker definition (soft-delete). Existing values stay readable.",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/{entityType}/{id}": {
+      "get": {
+        "operationId": "ExternalTrackersController_listEntityTrackers",
+        "parameters": [
+          {
+            "name": "entityType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "nps",
+                "csat",
+                "ces",
+                "form",
+                "flow"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trackers assigned to the entity"
+          },
+          "400": {
+            "description": "Unsupported entity type"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List tracker values assigned to a VoC entity (tool/form/flow)",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      },
+      "post": {
+        "description": "Idempotent: if (entity, trackerName) already has a value, it is overwritten. Resolves trackerId server-side.",
+        "operationId": "ExternalTrackersController_assignEntityTrackerByName",
+        "parameters": [
+          {
+            "name": "entityType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "nps",
+                "csat",
+                "ces",
+                "form",
+                "flow"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignExternalTrackerByNameDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Value assigned or updated"
+          },
+          "400": {
+            "description": "Unsupported entity type, inactive tracker or validation error"
+          },
+          "403": {
+            "description": "Entity belongs to another company"
+          },
+          "404": {
+            "description": "Entity or tracker name not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign (upsert) a tracker value to a VoC entity by tracker name",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/external-trackers/{entityType}/{id}/{trackerName}": {
+      "delete": {
+        "operationId": "ExternalTrackersController_removeEntityTrackerByName",
+        "parameters": [
+          {
+            "name": "entityType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "nps",
+                "csat",
+                "ces",
+                "form",
+                "flow"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "trackerName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Value removed"
+          },
+          "404": {
+            "description": "Tracker name or assignment not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a tracker value from a VoC entity by tracker name",
+        "tags": [
+          "v1 - external-trackers"
+        ]
+      }
+    },
+    "/v1/ticket-destinations": {
+      "get": {
+        "operationId": "V1TicketDestinationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Destinations (no credentials)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the ticket destinations of the caller company",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      },
+      "post": {
+        "description": "kind: zendesk | salesforce | slack | custom | email. config/credentials are validated per kind. routingConditions support operator \"equals\" (a value) or \"any\" (the whole tracker).",
+        "operationId": "V1TicketDestinationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketDestinationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a ticket destination",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      }
+    },
+    "/v1/ticket-destinations/{id}": {
+      "get": {
+        "operationId": "V1TicketDestinationsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Destination not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one ticket destination",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      },
+      "patch": {
+        "operationId": "V1TicketDestinationsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketDestinationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Destination not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a ticket destination",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      },
+      "delete": {
+        "operationId": "V1TicketDestinationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Destination not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a ticket destination",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      }
+    },
+    "/v1/ticket-destinations/{id}/test": {
+      "post": {
+        "description": "Requires confirm:true. Makes one real outbound call: custom webhooks receive a test payload; zendesk/salesforce/slack run a read-only auth probe; email only validates config. Result is sanitized to { ok, status, message }.",
+        "operationId": "V1TicketDestinationsController_test",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestTicketDestinationBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sanitized test result"
+          },
+          "400": {
+            "description": "Not confirmed"
+          },
+          "404": {
+            "description": "Destination not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a real connectivity test to a saved destination",
+        "tags": [
+          "v1 - ticket-destinations"
+        ]
+      }
+    },
+    "/v1/action-plan-groups": {
+      "get": {
+        "operationId": "V1ActionPlanGroupsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search over name, description and condition values.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the action plan groups of the caller company",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      },
+      "post": {
+        "operationId": "V1ActionPlanGroupsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActionPlanGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an action plan group",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      }
+    },
+    "/v1/action-plan-groups/{id}": {
+      "get": {
+        "operationId": "V1ActionPlanGroupsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one action plan group",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      },
+      "patch": {
+        "operationId": "V1ActionPlanGroupsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActionPlanGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an action plan group",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      },
+      "delete": {
+        "operationId": "V1ActionPlanGroupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an action plan group",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      }
+    },
+    "/v1/action-plan-groups/{id}/enabled": {
+      "patch": {
+        "operationId": "V1ActionPlanGroupsController_setEnabled",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActionPlanGroupEnabledDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable or disable an action plan group",
+        "tags": [
+          "v1 - action-plan-groups"
+        ]
+      }
+    },
+    "/v1/action-plans": {
+      "get": {
+        "operationId": "V1ActionPlansController_list",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by group id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "approved",
+                "sent",
+                "canceled",
+                "delivery_error",
+                "in_progress",
+                "completed"
+              ]
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Plans whose sources include this VoC source.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "woku",
+                "nps",
+                "csat",
+                "ces"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO start of the createdAt range.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO end of the createdAt range (exclusive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search over title and summary.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the action plans of the caller company",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}": {
+      "get": {
+        "operationId": "V1ActionPlansController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one action plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/events": {
+      "get": {
+        "operationId": "V1ActionPlansController_events",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the plan timeline (events, oldest first)",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/conversation": {
+      "get": {
+        "description": "Read-only. `busy` is true while the AI is composing a reply; `messages` is empty for a plan that has never been replied to.",
+        "operationId": "V1ActionPlansController_getConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the plan AI conversation",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      },
+      "post": {
+        "description": "Requires confirm:true. Returns an ack of the human message; the AI reply is composed asynchronously, so poll GET conversation until busy is false. Only a plan in draft accepts replies (409 otherwise).",
+        "operationId": "V1ActionPlansController_postReply",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostPlanReplyBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Human message accepted"
+          },
+          "400": {
+            "description": "Not confirmed or invalid body"
+          },
+          "404": {
+            "description": "Plan not found"
+          },
+          "409": {
+            "description": "Plan is not in draft or is busy"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reply to the plan AI agent (paid AI turn, confirm required)",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/send": {
+      "post": {
+        "description": "provider: jira | monday | clickup | notion (external, needs target) or internal (managed inside woku, no target).",
+        "operationId": "V1ActionPlansController_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendActionPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          },
+          "409": {
+            "description": "Invalid status transition"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send an approved plan to a destination",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/tasks": {
+      "post": {
+        "operationId": "V1ActionPlansController_createTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActionPlanTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          },
+          "409": {
+            "description": "Plan is not a draft or managed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a task (draft or managed plan)",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/tasks/reorder": {
+      "patch": {
+        "operationId": "V1ActionPlansController_reorderTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderActionPlanTasksDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reorder tasks (draft or managed plan)",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/tasks/{taskId}": {
+      "patch": {
+        "operationId": "V1ActionPlansController_updateTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActionPlanTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "409": {
+            "description": "Plan is not a draft or managed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a task: text on a draft/managed plan, status & assignee on a managed plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      },
+      "delete": {
+        "operationId": "V1ActionPlansController_deleteTask",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a task (draft or managed plan)",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/approve": {
+      "post": {
+        "operationId": "V1ActionPlansController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a draft plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/reopen": {
+      "post": {
+        "operationId": "V1ActionPlansController_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reopen an approved/delivery_error plan to draft",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/cancel": {
+      "post": {
+        "operationId": "V1ActionPlansController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/complete": {
+      "post": {
+        "operationId": "V1ActionPlansController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close a managed plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/action-plans/{id}/resume": {
+      "post": {
+        "operationId": "V1ActionPlansController_resume",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reopen a completed managed plan",
+        "tags": [
+          "v1 - action-plans"
+        ]
+      }
+    },
+    "/v1/wokus": {
+      "get": {
+        "operationId": "V1WokusController_listWokus",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated wokus"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the wokus of the caller company (paginated)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      },
+      "post": {
+        "operationId": "V1WokusController_createWoku",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWokuApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Woku created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a woku (v1 alias of POST /wokus/create-woku)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{id}": {
+      "get": {
+        "operationId": "V1WokusController_getWoku",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Woku with stats"
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a woku with aggregated review stats",
+        "tags": [
+          "v1 - wokus"
+        ]
+      },
+      "patch": {
+        "operationId": "V1WokusController_updateWoku",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWokuBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Woku updated"
+          },
+          "400": {
+            "description": "Validation error, or the woku already has reviews",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a woku definition (only if it has no reviews)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      },
+      "delete": {
+        "operationId": "V1WokusController_deleteWoku",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Woku deleted"
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a woku and all its reviews",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{id}/reviews": {
+      "get": {
+        "description": "Most recent first. Voice reviews expose the transcription; client contact data is never included, only clientId.",
+        "operationId": "V1WokusController_listWokuReviews",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated reviews"
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the reviews of a woku (text and voice, paginated)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{id}/settings": {
+      "patch": {
+        "description": "Applies only the flags present in the body; a flag equal to the current state is a no-op.",
+        "operationId": "V1WokusController_updateWokuSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWokuSettingsBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Woku settings applied"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the woku boolean settings (idempotent)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{id}/move": {
+      "patch": {
+        "operationId": "V1WokusController_moveWoku",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveWokuBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Woku moved"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move a woku into a folder, or to the root (folderId: null)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/form-data": {
+      "post": {
+        "operationId": "V1WokusController_createWokuFormData",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWokuFormDataApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a woku with a file upload (v1 alias of POST /wokus/create-woku-form-data)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{wokuId}/review": {
+      "get": {
+        "operationId": "V1WokusController_getWokuReview",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get review data for a woku (v1 alias of GET /wokus/review/:wokuId)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{wokuId}/textnotes": {
+      "post": {
+        "operationId": "V1WokusController_createTextnote",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateTextnoteBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a text review for a woku (v1 alias of POST /wokus/create-textnote)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{wokuId}/voicemails": {
+      "post": {
+        "operationId": "V1WokusController_createVoicemail",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateVoicemailBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a voice review for a woku (v1 alias of POST /wokus/create-voicemail)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/wokus/{wokuId}/share": {
+      "post": {
+        "operationId": "V1WokusController_shareWokuToEmail",
+        "parameters": [
+          {
+            "name": "wokuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1ShareWokuBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Share a woku review link via email (v1 alias of POST /wokus/share-woku-to-email)",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
+    "/v1/companies/me": {
+      "get": {
+        "description": "Returns the company resolved from the Bearer key along with its folders and wokus.",
+        "operationId": "V1CompaniesController_getCompanyData",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company data retrieved"
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the caller company (v1 alias of GET /companies)",
+        "tags": [
+          "v1 - companies"
+        ]
+      }
+    },
+    "/v1/companies/me/rotate-key": {
+      "post": {
+        "description": "Issues a new secret API key and immediately invalidates the current one. The new key is returned once and is not retrievable again.",
+        "operationId": "V1CompaniesController_rotateApiKey",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "New API key issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1ApiKeyResultDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rotate the company API key",
+        "tags": [
+          "v1 - companies"
+        ]
+      }
+    },
+    "/v1/companies/me/revoke-key": {
+      "post": {
+        "description": "Disables all API access by unsetting the secret key. A new key must be provisioned from the admin to restore access.",
+        "operationId": "V1CompaniesController_revokeApiKey",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API key revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1RevokeApiKeyResultDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke the company API key",
+        "tags": [
+          "v1 - companies"
+        ]
+      }
+    },
+    "/v1/reports/company-nps": {
+      "get": {
+        "description": "Returns the aggregated NPS report for the company resolved from the Bearer key.",
+        "operationId": "V1ReportsController_getCompanyNps",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Company NPS report"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the company-wide NPS report",
+        "tags": [
+          "v1 - reports"
+        ]
+      }
+    },
+    "/v1/reports/nps-tool/{npsToolId}": {
+      "get": {
+        "description": "Returns the NPS report for the given tool. Fails with 400 if the tool does not belong to the caller company.",
+        "operationId": "V1ReportsController_getNpsTool",
+        "parameters": [
+          {
+            "name": "npsToolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NPS tool report"
+          },
+          "400": {
+            "description": "NPS tool does not belong to the caller company"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the NPS report for a specific NPS tool",
+        "tags": [
+          "v1 - reports"
+        ]
+      }
+    },
+    "/v1/nps-tool/{id}": {
+      "get": {
+        "operationId": "V1NpsController_getNpsTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NPS tool definition"
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an NPS tool definition (to build the survey question)",
+        "tags": [
+          "v1 - nps"
+        ]
+      }
+    },
+    "/v1/nps": {
+      "post": {
+        "operationId": "V1NpsController_createNps",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateNpsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "NPS created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Capture an NPS score (company-level or tool-specific)",
+        "tags": [
+          "v1 - nps"
+        ]
+      },
+      "get": {
+        "description": "Paginated, most recent first. Filter by tool, date range and whether the response carries feedback (textnote or voicemail). Responses never include client contact data, only clientId.",
+        "operationId": "V1NpsDataController_listNps",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "npsToolId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive lower bound on createdAt",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive upper bound on createdAt",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "withFeedback",
+            "required": false,
+            "in": "query",
+            "description": "true returns only responses with a text or voice comment",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated NPS responses"
+          },
+          "403": {
+            "description": "NPS tool filter does not belong to the caller company"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the NPS responses of the caller company",
+        "tags": [
+          "v1 - nps"
+        ]
+      }
+    },
+    "/v1/nps/{id}/textnotes": {
+      "post": {
+        "operationId": "V1NpsController_addNpsTextnote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateNpsTextnoteBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Text review added"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "NPS does not belong to caller"
+          },
+          "404": {
+            "description": "NPS not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional text review to an NPS score",
+        "tags": [
+          "v1 - nps"
+        ]
+      }
+    },
+    "/v1/nps/{id}/voicemails": {
+      "post": {
+        "operationId": "V1NpsController_addNpsVoicemail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio file (m4a/aac/mp4). Transcribed server-side."
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "es",
+                      "en"
+                    ],
+                    "description": "Spoken language used for transcription"
+                  }
+                },
+                "required": [
+                  "file",
+                  "language"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Voice review added"
+          },
+          "403": {
+            "description": "NPS does not belong to caller"
+          },
+          "404": {
+            "description": "NPS not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional voice review to an NPS score",
+        "tags": [
+          "v1 - nps"
+        ]
+      }
+    },
+    "/v1/csat-tool/{id}": {
+      "get": {
+        "operationId": "V1CsatController_getCsatTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSAT tool definition"
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a CSAT tool definition (to build the survey)",
+        "tags": [
+          "v1 - csat"
+        ]
+      }
+    },
+    "/v1/csat": {
+      "post": {
+        "operationId": "V1CsatController_createCsat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCsatBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CSAT response created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Capture a CSAT score (1-5, tool-specific)",
+        "tags": [
+          "v1 - csat"
+        ]
+      },
+      "get": {
+        "operationId": "V1CsatDataController_listCsat",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "csatToolId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date lower bound",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date upper bound",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "withFeedback",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated CSAT responses"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the CSAT responses of the caller company",
+        "tags": [
+          "v1 - csat"
+        ]
+      }
+    },
+    "/v1/csat/{id}/textnotes": {
+      "post": {
+        "operationId": "V1CsatController_addCsatTextnote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCsatTextnoteBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Text comment accepted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response does not belong to caller"
+          },
+          "404": {
+            "description": "CSAT response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional text comment to a CSAT response",
+        "tags": [
+          "v1 - csat"
+        ]
+      }
+    },
+    "/v1/csat/{id}/voicemails": {
+      "post": {
+        "operationId": "V1CsatController_addCsatVoicemail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio file (m4a/aac/mp4). Transcribed server-side."
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "es",
+                      "en"
+                    ],
+                    "description": "Spoken language used for transcription"
+                  }
+                },
+                "required": [
+                  "file",
+                  "language"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Voice comment accepted"
+          },
+          "403": {
+            "description": "Response does not belong to caller"
+          },
+          "404": {
+            "description": "CSAT response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional voice comment to a CSAT response",
+        "tags": [
+          "v1 - csat"
+        ]
+      }
+    },
+    "/v1/ces-tool/{id}": {
+      "get": {
+        "operationId": "V1CesController_getCesTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CES tool definition"
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a CES tool definition (to build the survey)",
+        "tags": [
+          "v1 - ces"
+        ]
+      }
+    },
+    "/v1/ces": {
+      "post": {
+        "operationId": "V1CesController_createCes",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCesBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CES response created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Capture a CES score (1-5, tool-specific)",
+        "tags": [
+          "v1 - ces"
+        ]
+      },
+      "get": {
+        "operationId": "V1CesDataController_listCes",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "cesToolId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date lower bound",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date upper bound",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "withFeedback",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated CES responses"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the CES responses of the caller company",
+        "tags": [
+          "v1 - ces"
+        ]
+      }
+    },
+    "/v1/ces/{id}/textnotes": {
+      "post": {
+        "operationId": "V1CesController_addCesTextnote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCesTextnoteBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Text comment accepted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response does not belong to caller"
+          },
+          "404": {
+            "description": "CES response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional text comment to a CES response",
+        "tags": [
+          "v1 - ces"
+        ]
+      }
+    },
+    "/v1/ces/{id}/voicemails": {
+      "post": {
+        "operationId": "V1CesController_addCesVoicemail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio file (m4a/aac/mp4). Transcribed server-side."
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "es",
+                      "en"
+                    ],
+                    "description": "Spoken language used for transcription"
+                  }
+                },
+                "required": [
+                  "file",
+                  "language"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Voice comment accepted"
+          },
+          "403": {
+            "description": "Response does not belong to caller"
+          },
+          "404": {
+            "description": "CES response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an optional voice comment to a CES response",
+        "tags": [
+          "v1 - ces"
+        ]
+      }
+    },
+    "/v1/captures": {
+      "post": {
+        "operationId": "V1CapturesController_capture",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-woku-idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CaptureBodyDto"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CaptureBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Capture accepted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Capture a woku review or NPS response from the mobile SDK",
+        "tags": [
+          "v1 - captures"
+        ]
+      }
+    },
+    "/v1/quarantines/check": {
+      "get": {
+        "operationId": "V1QuarantinesController_check",
+        "parameters": [
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phone",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quarantine status for the respondent"
+          },
+          "400": {
+            "description": "email or phone is required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check whether a respondent is currently quarantined",
+        "tags": [
+          "v1 - quarantines"
+        ]
+      }
+    },
+    "/v1/nps/invitations": {
+      "post": {
+        "description": "Dispatches the NPS survey (company-level, or tool-specific via npsToolId) to a list of recipients. Sends are asynchronous: the response reports per-recipient acceptance, including quarantine and WhatsApp credit rejections.",
+        "operationId": "V1InvitationsController_sendNpsInvitations",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make a send safe to retry. A retry with the same key returns the original result instead of dispatching again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateNpsInvitationsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Per-recipient dispatch summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1InvitationsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "NPS tool does not belong to the caller company"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the NPS survey by email or WhatsApp",
+        "tags": [
+          "v1 - invitations"
+        ]
+      }
+    },
+    "/v1/csat/invitations": {
+      "post": {
+        "operationId": "V1InvitationsController_sendCsatInvitations",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make a send safe to retry. A retry with the same key returns the original result instead of dispatching again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCsatInvitationsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Per-recipient dispatch summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1InvitationsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the CSAT survey by email or WhatsApp",
+        "tags": [
+          "v1 - invitations"
+        ]
+      }
+    },
+    "/v1/ces/invitations": {
+      "post": {
+        "operationId": "V1InvitationsController_sendCesInvitations",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make a send safe to retry. A retry with the same key returns the original result instead of dispatching again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateCesInvitationsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Per-recipient dispatch summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1InvitationsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tool does not belong to caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the CES survey by email or WhatsApp",
+        "tags": [
+          "v1 - invitations"
+        ]
+      }
+    },
+    "/v1/forms/{id}/invitations": {
+      "post": {
+        "description": "Dispatches the form invitation to a list of recipients. The form must belong to the caller company and be open and active.",
+        "operationId": "V1InvitationsController_sendFormInvitations",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make a send safe to retry. A retry with the same key returns the original result instead of dispatching again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Form id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateInvitationsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Per-recipient dispatch summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1InvitationsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the form is closed or inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Form does not belong to the caller company"
+          },
+          "404": {
+            "description": "Form not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a form by email or WhatsApp",
+        "tags": [
+          "v1 - invitations"
+        ]
+      }
+    },
+    "/v1/wokus/{id}/invitations": {
+      "post": {
+        "description": "Dispatches the woku review invitation to a list of recipients. The woku must belong to the caller company, be open and accept reviews. Equivalent to POST /v1/wokus/:wokuId/share for the email channel.",
+        "operationId": "V1InvitationsController_sendWokuInvitations",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make a send safe to retry. A retry with the same key returns the original result instead of dispatching again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Woku id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateInvitationsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Per-recipient dispatch summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1InvitationsResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the woku is closed or has reviews disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Woku does not belong to the caller company"
+          },
+          "404": {
+            "description": "Woku not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a woku review invitation by email or WhatsApp",
+        "tags": [
+          "v1 - invitations"
+        ]
+      }
+    },
+    "/v1/forms": {
+      "get": {
+        "operationId": "V1FormsController_listForms",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated forms"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the forms of the caller company (paginated)",
+        "tags": [
+          "v1 - forms"
+        ]
+      }
+    },
+    "/v1/forms/{id}/responses": {
+      "get": {
+        "description": "Most recent first. Responses expose answers keyed by field id; client contact data is never included, only clientId.",
+        "operationId": "V1FormsController_listFormResponses",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Form id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated form responses"
+          },
+          "403": {
+            "description": "Form does not belong to the caller company"
+          },
+          "404": {
+            "description": "Form not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the responses of a form (paginated)",
+        "tags": [
+          "v1 - forms"
+        ]
+      },
+      "post": {
+        "description": "Records a response for the form. Answers are validated against the form definition before being stored; quarantined respondents are rejected with 429.",
+        "operationId": "V1FormsController_createFormResponse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Form id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateFormResponseBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Form response created"
+          },
+          "400": {
+            "description": "Validation error, or the form is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Form does not belong to the caller company"
+          },
+          "404": {
+            "description": "Form not found or inactive"
+          },
+          "429": {
+            "description": "Respondent is quarantined"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit a form response",
+        "tags": [
+          "v1 - forms"
+        ]
+      }
+    },
+    "/v1/forms/{id}": {
+      "get": {
+        "description": "Returns the active form (fields, settings, localized content) plus company branding. Inactive forms return 404.",
+        "operationId": "V1FormsController_getForm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Form id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Form definition"
+          },
+          "403": {
+            "description": "Form does not belong to the caller company"
+          },
+          "404": {
+            "description": "Form not found or inactive"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a form definition (to render the form)",
+        "tags": [
+          "v1 - forms"
+        ]
+      }
+    },
+    "/v1/flows": {
+      "get": {
+        "operationId": "V1FlowsController_listFlows",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated flows"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the flows of the caller company (paginated)",
+        "tags": [
+          "v1 - flows"
+        ]
+      }
+    },
+    "/v1/flows/{id}": {
+      "get": {
+        "operationId": "V1FlowsController_getFlow",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Flow id",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flow data"
+          },
+          "403": {
+            "description": "Flow does not belong to the caller company"
+          },
+          "404": {
+            "description": "Flow not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the data of a flow (wokus in order, branding, linked NPS)",
+        "tags": [
+          "v1 - flows"
+        ]
+      }
+    },
+    "/v1/nps-tools": {
+      "get": {
+        "description": "Canonical plural form; GET /v1/nps-tool/:id remains as the single-tool fetch.",
+        "operationId": "V1NpsDataController_listNpsTools",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated NPS tools"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the NPS tools of the caller company",
+        "tags": [
+          "v1 - nps"
+        ]
+      },
+      "post": {
+        "operationId": "V1NpsToolsController_createNpsTool",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the create safe to retry. A retry with the same key returns the original result instead of creating again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNpsToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "NPS tool created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an NPS tool definition",
+        "tags": [
+          "v1 - nps-tools"
+        ]
+      }
+    },
+    "/v1/nps/{id}": {
+      "get": {
+        "operationId": "V1NpsDataController_getNps",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NPS response"
+          },
+          "403": {
+            "description": "NPS does not belong to the caller company"
+          },
+          "404": {
+            "description": "NPS not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single NPS response",
+        "tags": [
+          "v1 - nps"
+        ]
+      }
+    },
+    "/v1/csat-tools": {
+      "get": {
+        "operationId": "V1CsatDataController_listCsatTools",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated CSAT tools"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the CSAT tools of the caller company",
+        "tags": [
+          "v1 - csat"
+        ]
+      },
+      "post": {
+        "operationId": "V1CsatToolsController_createCsatTool",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the create safe to retry. A retry with the same key returns the original result instead of creating again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCsatToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CSAT tool created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a CSAT tool definition",
+        "tags": [
+          "v1 - csat-tools"
+        ]
+      }
+    },
+    "/v1/csat/{id}": {
+      "get": {
+        "operationId": "V1CsatDataController_getCsat",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSAT response"
+          },
+          "404": {
+            "description": "CSAT response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single CSAT response",
+        "tags": [
+          "v1 - csat"
+        ]
+      }
+    },
+    "/v1/ces-tools": {
+      "get": {
+        "operationId": "V1CesDataController_listCesTools",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated CES tools"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the CES tools of the caller company",
+        "tags": [
+          "v1 - ces"
+        ]
+      },
+      "post": {
+        "operationId": "V1CesToolsController_createCesTool",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the create safe to retry. A retry with the same key returns the original result instead of creating again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCesToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CES tool created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a CES tool definition",
+        "tags": [
+          "v1 - ces-tools"
+        ]
+      }
+    },
+    "/v1/ces/{id}": {
+      "get": {
+        "operationId": "V1CesDataController_getCes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CES response"
+          },
+          "404": {
+            "description": "CES response not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single CES response",
+        "tags": [
+          "v1 - ces"
+        ]
+      }
+    },
+    "/v1/nps-tools/{id}": {
+      "patch": {
+        "operationId": "V1NpsToolsController_updateNpsTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNpsToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NPS tool updated"
+          },
+          "400": {
+            "description": "Validation error, or the tool already has responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NPS tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an NPS tool definition (only if it has no responses)",
+        "tags": [
+          "v1 - nps-tools"
+        ]
+      },
+      "delete": {
+        "operationId": "V1NpsToolsController_deleteNpsTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NPS tool deleted"
+          },
+          "404": {
+            "description": "NPS tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an NPS tool definition and all its responses",
+        "tags": [
+          "v1 - nps-tools"
+        ]
+      }
+    },
+    "/v1/csat-tools/{id}": {
+      "patch": {
+        "operationId": "V1CsatToolsController_updateCsatTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCsatToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CSAT tool updated"
+          },
+          "400": {
+            "description": "Validation error, or the tool already has responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CSAT tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a CSAT tool definition (only if it has no responses)",
+        "tags": [
+          "v1 - csat-tools"
+        ]
+      },
+      "delete": {
+        "operationId": "V1CsatToolsController_deleteCsatTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSAT tool deleted"
+          },
+          "404": {
+            "description": "CSAT tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a CSAT tool definition and all its responses",
+        "tags": [
+          "v1 - csat-tools"
+        ]
+      }
+    },
+    "/v1/ces-tools/{id}": {
+      "patch": {
+        "operationId": "V1CesToolsController_updateCesTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCesToolBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CES tool updated"
+          },
+          "400": {
+            "description": "Validation error, or the tool already has responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CES tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a CES tool definition (only if it has no responses)",
+        "tags": [
+          "v1 - ces-tools"
+        ]
+      },
+      "delete": {
+        "operationId": "V1CesToolsController_deleteCesTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CES tool deleted"
+          },
+          "404": {
+            "description": "CES tool not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a CES tool definition and all its responses",
+        "tags": [
+          "v1 - ces-tools"
+        ]
+      }
+    },
+    "/v1/tickets": {
+      "get": {
+        "operationId": "V1TicketsController_listTickets",
+        "parameters": [
+          {
+            "name": "tool",
+            "required": false,
+            "in": "query",
+            "description": "Only tickets originated by this tool.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "woku",
+                "nps",
+                "form",
+                "csat",
+                "ces"
+              ]
+            }
+          },
+          {
+            "name": "severity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search over title, code, client and comment.",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "destinationId",
+            "required": false,
+            "in": "query",
+            "description": "Only tickets routed to this SAC destination.",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFrom",
+            "required": false,
+            "in": "query",
+            "description": "Lower bound for createdAt (ISO 8601).",
+            "schema": {
+              "example": "2026-01-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdTo",
+            "required": false,
+            "in": "query",
+            "description": "Upper bound for createdAt (ISO 8601).",
+            "schema": {
+              "example": "2026-12-31T23:59:59.999Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated tickets"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the support tickets of the caller company",
+        "tags": [
+          "v1 - tickets"
+        ]
+      }
+    },
+    "/v1/tickets/stats": {
+      "get": {
+        "description": "byTool has every tool key (defaulting to 0). byDestination counts Wokus, NPS, CSAT and CES routed to a destination (forms excluded).",
+        "operationId": "V1TicketsController_getStats",
+        "parameters": [
+          {
+            "name": "destinationId",
+            "required": false,
+            "in": "query",
+            "description": "Scope the aggregate to a single SAC destination.",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFrom",
+            "required": false,
+            "in": "query",
+            "description": "Lower bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdTo",
+            "required": false,
+            "in": "query",
+            "description": "Upper bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate ticket counts"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ticket counts by tool and by SAC destination",
+        "tags": [
+          "v1 - tickets"
+        ]
+      }
+    },
+    "/v1/tickets/{id}": {
+      "get": {
+        "operationId": "V1TicketsController_getTicket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one support ticket",
+        "tags": [
+          "v1 - tickets"
+        ]
+      },
+      "patch": {
+        "operationId": "V1TicketsController_updateTicket",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketBodyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket updated"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a ticket (title, severity, AI summary or category)",
+        "tags": [
+          "v1 - tickets"
+        ]
+      }
+    },
+    "/v1/dispatches": {
+      "get": {
+        "description": "Delivery status per send. Recipient PII is never included; use the targets to correlate a dispatch to a tool/woku/form.",
+        "operationId": "V1DispatchesController_list",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "description": "Outbound channel of the send.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "email",
+                "whatsapp"
+              ]
+            }
+          },
+          {
+            "name": "responseType",
+            "required": false,
+            "in": "query",
+            "description": "Only dispatches targeting this tool kind.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "woku",
+                "nps",
+                "form",
+                "client-form",
+                "csat",
+                "ces"
+              ]
+            }
+          },
+          {
+            "name": "targetId",
+            "required": false,
+            "in": "query",
+            "description": "Only dispatches targeting this specific tool/woku/form id.",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFrom",
+            "required": false,
+            "in": "query",
+            "description": "Lower bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdTo",
+            "required": false,
+            "in": "query",
+            "description": "Upper bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Lifecycle status of the whole invitation.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "invited",
+                "partially_responded",
+                "responded",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated dispatches"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the invitation dispatches of the caller company",
+        "tags": [
+          "v1 - dispatches"
+        ]
+      }
+    },
+    "/v1/dispatches/stats": {
+      "get": {
+        "description": "responseRate = (responded + partially_responded) / total, or null when there are no dispatches in scope.",
+        "operationId": "V1DispatchesController_stats",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "description": "Outbound channel of the send.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "email",
+                "whatsapp"
+              ]
+            }
+          },
+          {
+            "name": "responseType",
+            "required": false,
+            "in": "query",
+            "description": "Only dispatches targeting this tool kind.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "woku",
+                "nps",
+                "form",
+                "client-form",
+                "csat",
+                "ces"
+              ]
+            }
+          },
+          {
+            "name": "targetId",
+            "required": false,
+            "in": "query",
+            "description": "Only dispatches targeting this specific tool/woku/form id.",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdFrom",
+            "required": false,
+            "in": "query",
+            "description": "Lower bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdTo",
+            "required": false,
+            "in": "query",
+            "description": "Upper bound for createdAt (ISO 8601).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate response-rate metrics"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Response-rate metrics over the invitation dispatches",
+        "tags": [
+          "v1 - dispatches"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Woku Client API v1",
+    "description": "Public REST API for programmatic management of woku Voice-of-Customer programs: trackers, VoC instruments (NPS, woku, CES, CSAT), action plans, support tickets, multi-channel sending and response capture. Requests are company-scoped by the API key; never send a company id.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Woku",
+      "url": "https://woku.app",
+      "email": "team@woku.app"
+    }
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://clientapi.woku.app",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "Authorization",
+        "in": "header",
+        "description": "Company secret API key."
+      },
+      "PublishableKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-woku-key",
+        "description": "Publishable capture key (pk_...), capture endpoints only."
+      }
+    },
+    "schemas": {
+      "ValidationErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "description": "HTTP status code",
+            "example": 400
+          },
+          "message": {
+            "description": "Array of validation error messages",
+            "example": [
+              "email must be a valid email",
+              "password must be at least 8 characters"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error type",
+            "example": "Bad Request"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error"
+        ]
+      },
+      "CreateWokuApiDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWokuFormDataApiDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateExternalTrackerDefinitionDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tracker name. Identifies the tracker within the company catalog. Unique per company.",
+            "example": "trr",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "system": {
+            "type": "string",
+            "description": "External system this tracker maps to.",
+            "example": "crm interno",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the tracker.",
+            "example": "transaction id of a lease or sale",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "system"
+        ]
+      },
+      "AssignWokuExternalTrackerByNameDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the company-level external tracker definition this value belongs to.",
+            "example": "trr",
+            "maxLength": 60
+          },
+          "value": {
+            "type": "string",
+            "description": "External identifier value (always stored as string).",
+            "example": "dasdj123kdak32",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "ExternalTrackerFilterDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tracker name (resolved to its definition server-side).",
+            "example": "trr",
+            "maxLength": 60
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to match (partial, case-insensitive).",
+            "example": "ABC",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "SearchEntitiesByTrackersDTO": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "VoC entity type to search.",
+            "enum": [
+              "nps",
+              "csat",
+              "ces",
+              "form",
+              "flow"
+            ],
+            "example": "nps"
+          },
+          "filters": {
+            "description": "Tracker filters combined with AND. Each entity must match every filter to be returned.",
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalTrackerFilterDTO"
+            }
+          }
+        },
+        "required": [
+          "entityType",
+          "filters"
+        ]
+      },
+      "UpdateExternalTrackerDefinitionDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New name (must remain unique within the company).",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "system": {
+            "type": "string",
+            "description": "New external system identifier.",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "description": "New description.",
+            "maxLength": 500
+          }
+        }
+      },
+      "AssignExternalTrackerByNameDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the company-level external tracker definition this value belongs to.",
+            "example": "trr",
+            "maxLength": 60
+          },
+          "value": {
+            "type": "string",
+            "description": "External identifier value (always stored as string).",
+            "example": "dasdj123kdak32",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "TicketRoutingConditionDto": {
+        "type": "object",
+        "properties": {
+          "relationToPrevious": {
+            "type": "string",
+            "enum": [
+              "AND",
+              "OR"
+            ]
+          },
+          "trackerId": {
+            "type": "string",
+            "description": "CompanyExternalTracker id."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "equals",
+              "any"
+            ],
+            "default": "equals"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value the tracker must equal. Required unless operator is \"any\"."
+          }
+        },
+        "required": [
+          "trackerId"
+        ]
+      },
+      "TicketDestinationTemplateDto": {
+        "type": "object",
+        "properties": {
+          "preset": {
+            "type": "string",
+            "example": "custom"
+          },
+          "body": {
+            "type": "string",
+            "description": "Custom JSON body with {{path}} placeholders."
+          }
+        },
+        "required": [
+          "preset"
+        ]
+      },
+      "CreateTicketDestinationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Zendesk Soporte Chile",
+            "maxLength": 120
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "zendesk",
+              "salesforce",
+              "slack",
+              "custom",
+              "email"
+            ]
+          },
+          "config": {
+            "type": "object",
+            "description": "Non-secret provider config (validated per kind)."
+          },
+          "credentials": {
+            "type": "object",
+            "description": "Provider credentials (write-only, encrypted)."
+          },
+          "aiContext": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Per-destination AI triage context."
+          },
+          "routingConditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketRoutingConditionDto"
+            }
+          },
+          "template": {
+            "$ref": "#/components/schemas/TicketDestinationTemplateDto"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "config",
+          "credentials"
+        ]
+      },
+      "UpdateTicketDestinationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "zendesk",
+              "salesforce",
+              "slack",
+              "custom",
+              "email"
+            ]
+          },
+          "config": {
+            "type": "object"
+          },
+          "credentials": {
+            "type": "object",
+            "description": "Present = credential rotation."
+          },
+          "aiContext": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Per-destination AI triage context."
+          },
+          "routingConditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketRoutingConditionDto"
+            }
+          },
+          "template": {
+            "$ref": "#/components/schemas/TicketDestinationTemplateDto"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TestTicketDestinationBodyDTO": {
+        "type": "object",
+        "properties": {
+          "confirm": {
+            "type": "boolean",
+            "description": "Must be true. The test sends a real request to the destination (custom webhooks receive a test payload; other kinds run a read-only auth probe)."
+          }
+        },
+        "required": [
+          "confirm"
+        ]
+      },
+      "ActionPlanGroupConditionDto": {
+        "type": "object",
+        "properties": {
+          "relationToPrevious": {
+            "type": "string",
+            "enum": [
+              "AND",
+              "OR"
+            ]
+          },
+          "trackerId": {
+            "type": "string",
+            "description": "CompanyExternalTracker id."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "equals",
+              "any"
+            ],
+            "default": "equals"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value the tracker must equal. Required unless operator is \"any\"."
+          }
+        },
+        "required": [
+          "trackerId"
+        ]
+      },
+      "ActionPlanGroupMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Company member user id."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "assignee"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "role"
+        ]
+      },
+      "CreateActionPlanGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Atención en tienda",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "conditions": {
+            "description": "Tracker conditions; at least one row is required.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionPlanGroupConditionDto"
+            }
+          },
+          "members": {
+            "description": "Group team; at least one admin and one assignee.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionPlanGroupMemberDto"
+            }
+          },
+          "threshold": {
+            "type": "number",
+            "minimum": 1,
+            "default": 300,
+            "description": "New improvement comments that trigger a plan draft (default 300)."
+          }
+        },
+        "required": [
+          "name",
+          "conditions",
+          "members"
+        ]
+      },
+      "UpdateActionPlanGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Empty string clears."
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionPlanGroupConditionDto"
+            }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionPlanGroupMemberDto"
+            }
+          },
+          "threshold": {
+            "type": "number",
+            "minimum": 1
+          }
+        }
+      },
+      "SetActionPlanGroupEnabledDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "PostPlanReplyBodyDTO": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Message to send to the plan AI agent.",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Must be true. Each reply triggers a paid AI turn; the reply is composed asynchronously and delivered over the plan channel."
+          }
+        },
+        "required": [
+          "text",
+          "confirm"
+        ]
+      },
+      "SendActionPlanDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "jira",
+              "monday",
+              "clickup",
+              "notion",
+              "internal"
+            ]
+          },
+          "target": {
+            "type": "object",
+            "description": "Provider-specific resource ids (external providers): jira {siteId?, projectId, issueTypeId} · monday {boardId, groupId} · clickup {listId} · notion {databaseId}. Omitted for the managed provider."
+          },
+          "resourceLabel": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Human destination summary the drawer built (\"Operaciones CX · Backlog\"); persisted as delivery.resourceLabel. Omitted for the managed provider."
+          }
+        },
+        "required": [
+          "provider"
+        ]
+      },
+      "CreateActionPlanTaskDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "Task text."
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "ReorderActionPlanTasksDto": {
+        "type": "object",
+        "properties": {
+          "orderedTaskIds": {
+            "description": "All task ids in the desired order.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "orderedTaskIds"
+        ]
+      },
+      "UpdateActionPlanTaskDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "New task text."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done"
+            ]
+          },
+          "assigneeId": {
+            "type": "string",
+            "description": "Group member responsible; null/\"\" clears the assignee."
+          }
+        }
+      },
+      "V1WokuLocalizedContentDTO": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "en"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          }
+        },
+        "required": [
+          "locale",
+          "description"
+        ]
+      },
+      "UpdateWokuBodyDTO": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Woku description/title.",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "description": "Locales the survey is available in (subset of es/en).",
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V1WokuLocalizedContentDTO"
+            }
+          }
+        }
+      },
+      "UpdateWokuSettingsBodyDTO": {
+        "type": "object",
+        "properties": {
+          "closed": {
+            "type": "boolean",
+            "description": "Whether the woku is closed to new reviews."
+          },
+          "reviewsDisabled": {
+            "type": "boolean",
+            "description": "Whether new reviews are disabled."
+          },
+          "anonymousDisabled": {
+            "type": "boolean",
+            "description": "Whether anonymous reviews are disabled."
+          },
+          "onlyOneReviewPerClient": {
+            "type": "boolean",
+            "description": "Whether each client may leave only one review."
+          }
+        }
+      },
+      "MoveWokuBodyDTO": {
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "string",
+            "nullable": true,
+            "format": "ObjectId",
+            "description": "Target folder id, or null to move the woku to the root."
+          }
+        },
+        "required": [
+          "folderId"
+        ]
+      },
+      "V1CreateTextnoteBodyDto": {
+        "type": "object",
+        "properties": {
+          "qualification": {
+            "type": "number",
+            "description": "Star rating (1-5)",
+            "example": 5
+          },
+          "description": {
+            "type": "string",
+            "description": "Text content of the review (max 3000 chars)"
+          },
+          "clientEmail": {
+            "type": "string",
+            "description": "Reviewer email"
+          },
+          "clientPhone": {
+            "type": "string",
+            "description": "Reviewer phone"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether the review is anonymous"
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel).",
+            "example": "my-crm",
+            "maxLength": 48
+          }
+        },
+        "required": [
+          "qualification",
+          "description"
+        ]
+      },
+      "V1CreateVoicemailBodyDto": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Audio file for the voicemail",
+            "format": "binary"
+          },
+          "qualification": {
+            "type": "string",
+            "description": "Star rating (1-5)",
+            "enum": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ],
+            "example": "5"
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language used to improve audio transcription",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          },
+          "clientEmail": {
+            "type": "string",
+            "description": "Reviewer email"
+          },
+          "clientPhone": {
+            "type": "string",
+            "description": "Reviewer phone"
+          },
+          "anonymous": {
+            "type": "string",
+            "description": "Whether the review is anonymous",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel).",
+            "example": "my-crm",
+            "maxLength": 48
+          }
+        },
+        "required": [
+          "file",
+          "qualification",
+          "language"
+        ]
+      },
+      "V1ShareWokuBodyDto": {
+        "type": "object",
+        "properties": {
+          "clientEmail": {
+            "type": "string",
+            "description": "Single email address"
+          },
+          "clientEmails": {
+            "description": "Array of email addresses",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "V1ApiKeyResultDto": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string",
+            "description": "The new company secret API key. The previous key is now invalid; store this value, it is not retrievable again."
+          }
+        },
+        "required": [
+          "apiKey"
+        ]
+      },
+      "V1RevokeApiKeyResultDto": {
+        "type": "object",
+        "properties": {
+          "revoked": {
+            "type": "boolean",
+            "description": "Always true once the key has been revoked.",
+            "example": true
+          }
+        },
+        "required": [
+          "revoked"
+        ]
+      },
+      "V1CreateNpsBodyDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "description": "NPS score 0-10 (0-6 detractor, 7-8 passive, 9-10 promoter)",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 9
+          },
+          "npsToolId": {
+            "type": "string",
+            "description": "Optional NPS tool id. With it the capture is tool-specific; without it, company-level.",
+            "format": "ObjectId"
+          },
+          "clientEmail": {
+            "type": "string",
+            "description": "Respondent email. Omit for an anonymous capture.",
+            "format": "email"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether the submission is anonymous (no client email stored)."
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel). Stored on the NPS.",
+            "example": "my-crm",
+            "maxLength": 48
+          },
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation dispatch token echoed from the link (?dtoken=). Consumed to mark the outbound invitation responded; never persisted.",
+            "example": "a1b2c3d4-...",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "score"
+        ]
+      },
+      "V1CreateNpsTextnoteBodyDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Text feedback content",
+            "maxLength": 3000,
+            "example": "El producto cumple mis expectativas."
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "V1CreateCsatBodyDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "description": "CSAT satisfaction score 1-5",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 4
+          },
+          "csatToolId": {
+            "type": "string",
+            "description": "CSAT tool id (always required: CSAT tools are always custom)",
+            "format": "ObjectId"
+          },
+          "clientEmail": {
+            "type": "string",
+            "description": "Respondent email. Omit for an anonymous capture.",
+            "format": "email"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether the submission is anonymous (no client email stored)."
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel). Stored on the response.",
+            "example": "my-crm",
+            "maxLength": 48
+          },
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation dispatch token echoed from the link (?dtoken=). Consumed to mark the outbound invitation responded; never persisted.",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "score",
+          "csatToolId"
+        ]
+      },
+      "V1CreateCsatTextnoteBodyDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Text feedback content",
+            "maxLength": 3000,
+            "example": "El proceso fue muy facil."
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "V1CreateCesBodyDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "description": "CES effort score 1-5",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 4
+          },
+          "cesToolId": {
+            "type": "string",
+            "description": "CES tool id (always required: CES tools are always custom)",
+            "format": "ObjectId"
+          },
+          "clientEmail": {
+            "type": "string",
+            "description": "Respondent email. Omit for an anonymous capture.",
+            "format": "email"
+          },
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether the submission is anonymous (no client email stored)."
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel). Stored on the response.",
+            "example": "my-crm",
+            "maxLength": 48
+          },
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation dispatch token echoed from the link (?dtoken=). Consumed to mark the outbound invitation responded; never persisted.",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "score",
+          "cesToolId"
+        ]
+      },
+      "V1CreateCesTextnoteBodyDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Text feedback content",
+            "maxLength": 3000,
+            "example": "Resolver fue muy facil."
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "V1CaptureAudioDto": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "Device-local URI of the recorded audio"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "Audio MIME type, e.g. audio/m4a"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Duration in milliseconds"
+          }
+        }
+      },
+      "V1CaptureRespondentDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Respondent email"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Respondent phone"
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Host-app external id (e.g. CRM id)"
+          }
+        }
+      },
+      "V1CaptureBodyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Client-generated idempotency id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "nps",
+              "csat",
+              "ces"
+            ],
+            "example": "woku"
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language. Required when the capture includes an audio file.",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "description": "Target id: the wokuId for a woku capture, the (optional) npsToolId for an NPS capture, or the (required) csatToolId/cesToolId for a CSAT/CES capture (those tools are always custom)."
+          },
+          "rating": {
+            "type": "number",
+            "description": "Woku star rating 1-5",
+            "example": 5
+          },
+          "score": {
+            "type": "number",
+            "description": "NPS score 0-10",
+            "example": 9
+          },
+          "comment": {
+            "type": "string",
+            "description": "Free-text comment",
+            "maxLength": 3000
+          },
+          "audio": {
+            "$ref": "#/components/schemas/V1CaptureAudioDto"
+          },
+          "respondent": {
+            "$ref": "#/components/schemas/V1CaptureRespondentDto"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "V1CreateNpsInvitationsBodyDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel for the invitations",
+            "enum": [
+              "email",
+              "whatsapp"
+            ],
+            "example": "whatsapp"
+          },
+          "recipients": {
+            "description": "Recipients: email addresses for the email channel, phone numbers (digits, country code included, e.g. 56912345678) for whatsapp",
+            "example": [
+              "56912345678"
+            ],
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the invitation template",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          },
+          "npsToolId": {
+            "type": "string",
+            "description": "NPS tool to survey for. Omit to send the company-level NPS survey.",
+            "format": "ObjectId"
+          }
+        },
+        "required": [
+          "channel",
+          "recipients"
+        ]
+      },
+      "V1RejectedInvitationDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "description": "Recipient as received in the request"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the invitation was not dispatched",
+            "enum": [
+              "invalid_recipient",
+              "quarantined",
+              "insufficient_credits_or_blocked",
+              "send_failed"
+            ]
+          }
+        },
+        "required": [
+          "recipient",
+          "reason"
+        ]
+      },
+      "V1InvitationsResultDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "whatsapp"
+            ]
+          },
+          "accepted": {
+            "description": "Recipients whose invitation was dispatched (or queued)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rejected": {
+            "description": "Recipients whose invitation was not dispatched, with reason",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V1RejectedInvitationDto"
+            }
+          }
+        },
+        "required": [
+          "channel",
+          "accepted",
+          "rejected"
+        ]
+      },
+      "V1CreateCsatInvitationsBodyDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel for the invitations",
+            "enum": [
+              "email",
+              "whatsapp"
+            ],
+            "example": "whatsapp"
+          },
+          "recipients": {
+            "description": "Recipients: email addresses for the email channel, phone numbers (digits, country code included, e.g. 56912345678) for whatsapp",
+            "example": [
+              "56912345678"
+            ],
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the invitation template",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          },
+          "csatToolId": {
+            "type": "string",
+            "description": "CSAT tool to survey for (always required: always custom).",
+            "format": "ObjectId"
+          }
+        },
+        "required": [
+          "channel",
+          "recipients",
+          "csatToolId"
+        ]
+      },
+      "V1CreateCesInvitationsBodyDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel for the invitations",
+            "enum": [
+              "email",
+              "whatsapp"
+            ],
+            "example": "whatsapp"
+          },
+          "recipients": {
+            "description": "Recipients: email addresses for the email channel, phone numbers (digits, country code included, e.g. 56912345678) for whatsapp",
+            "example": [
+              "56912345678"
+            ],
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the invitation template",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          },
+          "cesToolId": {
+            "type": "string",
+            "description": "CES tool to survey for (always required: always custom).",
+            "format": "ObjectId"
+          }
+        },
+        "required": [
+          "channel",
+          "recipients",
+          "cesToolId"
+        ]
+      },
+      "V1CreateInvitationsBodyDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel for the invitations",
+            "enum": [
+              "email",
+              "whatsapp"
+            ],
+            "example": "whatsapp"
+          },
+          "recipients": {
+            "description": "Recipients: email addresses for the email channel, phone numbers (digits, country code included, e.g. 56912345678) for whatsapp",
+            "example": [
+              "56912345678"
+            ],
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the invitation template",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "es"
+          }
+        },
+        "required": [
+          "channel",
+          "recipients"
+        ]
+      },
+      "V1CreateFormResponseBodyDto": {
+        "type": "object",
+        "properties": {
+          "anonymous": {
+            "type": "boolean",
+            "description": "Whether this response is anonymous",
+            "example": false
+          },
+          "email": {
+            "type": "string",
+            "description": "Email of the respondent (required when the form identifies clients by email and the response is not anonymous)",
+            "example": "respondent@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone of the respondent (required when the form identifies clients by phone and the response is not anonymous)",
+            "example": "+56912345678"
+          },
+          "answers": {
+            "type": "object",
+            "description": "Answers keyed by field id",
+            "example": {
+              "field-uuid-1": "John Doe",
+              "field-uuid-2": 5
+            }
+          },
+          "responseChannel": {
+            "type": "string",
+            "description": "Inbound response channel. Defaults to 'api'; a value provided here REPLACES 'api' (user-defined channel). Stored on the response.",
+            "example": "my-crm",
+            "maxLength": 48
+          },
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation dispatch token echoed from the link (?dtoken=). Consumed to mark the outbound invitation responded; never persisted.",
+            "example": "a1b2c3d4-...",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "anonymous",
+          "answers"
+        ]
+      },
+      "NpsToolLocalizedContentBodyDTO": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "en"
+          },
+          "npsMessage": {
+            "type": "string",
+            "description": "Translated NPS question for this locale.",
+            "example": "How likely are you to recommend us?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "audienceType": {
+            "type": "string",
+            "description": "Translated audience for this locale.",
+            "example": "customers",
+            "maxLength": 140
+          }
+        },
+        "required": [
+          "locale",
+          "npsMessage"
+        ]
+      },
+      "CreateNpsToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name for identification.",
+            "example": "Post-Purchase Survey",
+            "maxLength": 140
+          },
+          "npsMessage": {
+            "type": "string",
+            "description": "Public NPS question shown to respondents.",
+            "example": "How likely are you to recommend our service to a friend?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "audienceType": {
+            "type": "string",
+            "description": "Audience the survey targets.",
+            "example": "customers",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "description": "Locales the tool is available in (subset of es/en).",
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "description": "Default locale used when none is requested.",
+            "example": "es",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NpsToolLocalizedContentBodyDTO"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "npsMessage"
+        ]
+      },
+      "UpdateNpsToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "npsMessage": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "audienceType": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NpsToolLocalizedContentBodyDTO"
+            }
+          }
+        }
+      },
+      "CsatToolLocalizedContentBodyDTO": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "en"
+          },
+          "question": {
+            "type": "string",
+            "description": "Translated CSAT question for this locale.",
+            "example": "How satisfied are you with your purchase?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "subject": {
+            "type": "string",
+            "description": "Translated subject for this locale.",
+            "example": "your purchase",
+            "maxLength": 140
+          }
+        },
+        "required": [
+          "locale",
+          "question"
+        ]
+      },
+      "CreateCsatToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name for identification.",
+            "example": "Post-Purchase CSAT",
+            "maxLength": 140
+          },
+          "question": {
+            "type": "string",
+            "description": "Public CSAT question shown to respondents.",
+            "example": "How satisfied are you with your purchase?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "subject": {
+            "type": "string",
+            "description": "Static variable filling 'how satisfied are you with [subject]?'.",
+            "example": "your purchase",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "description": "Locales the tool is available in (subset of es/en).",
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "description": "Default locale used when none is requested.",
+            "example": "es",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CsatToolLocalizedContentBodyDTO"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "question"
+        ]
+      },
+      "UpdateCsatToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CsatToolLocalizedContentBodyDTO"
+            }
+          }
+        }
+      },
+      "CesToolLocalizedContentBodyDTO": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "example": "en"
+          },
+          "question": {
+            "type": "string",
+            "description": "Translated CES question for this locale.",
+            "example": "How easy was it to complete your purchase?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "action": {
+            "type": "string",
+            "description": "Translated action for this locale.",
+            "example": "complete your purchase",
+            "maxLength": 140
+          }
+        },
+        "required": [
+          "locale",
+          "question"
+        ]
+      },
+      "CreateCesToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name for identification.",
+            "example": "Post-Purchase Effort",
+            "maxLength": 140
+          },
+          "question": {
+            "type": "string",
+            "description": "Public effort question shown to respondents.",
+            "example": "How easy was it to complete your purchase?",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "action": {
+            "type": "string",
+            "description": "Static variable filling 'how easy was it to [action]?'.",
+            "example": "complete your purchase",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "description": "Locales the tool is available in (subset of es/en).",
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "description": "Default locale used when none is requested.",
+            "example": "es",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CesToolLocalizedContentBodyDTO"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "question"
+        ]
+      },
+      "UpdateCesToolBodyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "question": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "availableLocales": {
+            "example": [
+              "es",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ]
+          },
+          "localizedContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CesToolLocalizedContentBodyDTO"
+            }
+          }
+        }
+      },
+      "UpdateTicketBodyDTO": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "aiSummary": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "aiCategory": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      }
+    }
+  }
+}

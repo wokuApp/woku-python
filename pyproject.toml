@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "woku"
+dynamic = ["version"]
+description = "Official server-side SDK for the Woku management API (trackers, VoC tools, action plans, tickets, delivery and capture over /v1)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Woku" }]
+keywords = [
+    "woku",
+    "sdk",
+    "api",
+    "customer-feedback",
+    "nps",
+    "csat",
+    "ces",
+    "voice-of-customer",
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.24",
+    "pydantic>=2",
+]
+
+[project.urls]
+Homepage = "https://woku.app"
+Repository = "https://github.com/wokuApp/woku-python"
+Issues = "https://github.com/wokuApp/woku-python/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+]
+
+[tool.hatch.version]
+path = "src/woku/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/woku"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/woku",
+    "openapi",
+    "scripts",
+    "README.md",
+    "LICENSE",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+extend-exclude = ["src/woku/_generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP", "C4"]
+
+[tool.pyright]
+include = ["src", "tests"]
+# Generated Pydantic models carry codegen quirks (enum-typed fields defaulted to
+# their raw string), harmless at runtime; do not fail the gate on them.
+exclude = ["src/woku/_generated"]
+pythonVersion = "3.9"
+typeCheckingMode = "standard"
+reportMissingModuleSource = false
+# Response models are permissive structural mirrors (every key optional), so
+# subscript access to a modeled key is intentional, not a possible KeyError.
+reportTypedDictNotRequiredAccess = "none"
