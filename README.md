@@ -48,15 +48,21 @@ woku = Woku(api_key="sk_...")  # or set WOKU_API_KEY and call Woku()
 # Create a tracker definition (idempotent).
 tracker = woku.trackers.create({"name": "Store #1", "system": "retail"})
 
-# Create an NPS tool and send it.
+# Create an NPS tool.
 tool = woku.nps_tools.create(
     {"name": "Post-purchase", "npsMessage": "How likely are you to recommend us?"}
 )
+
+# Tag the NPS tool with the tracker, so every response is grouped by store.
+woku.trackers.assign_to_entity(
+    "nps", tool["_id"], {"name": tracker["name"], "value": "TX-42"}
+)
+
+# Send it, then read delivery + response rate.
 woku.nps.send_invitations(
     {"channel": "email", "npsToolId": tool["_id"], "recipients": ["ana@example.com"]}
 )
 
-# Read delivery + response rate.
 stats = woku.dispatches.stats({"channel": "email"})
 print(stats["responseRate"])
 ```
