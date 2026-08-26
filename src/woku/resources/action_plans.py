@@ -15,7 +15,6 @@ from ..types import (
     CreateActionPlanGroupParams,
     CreateActionPlanTaskParams,
     ReorderActionPlanTasksParams,
-    SendActionPlanParams,
     UpdateActionPlanGroupParams,
     UpdateActionPlanTaskParams,
 )
@@ -90,17 +89,6 @@ class ActionPlans:
             f"/v1/action-plans/{plan_id}/conversation",
             body={"text": text, "confirm": True},
             options=options,
-        )
-
-    def send(
-        self,
-        plan_id: str,
-        body: SendActionPlanParams,
-        options: RequestOptions | None = None,
-    ) -> WokuRecord:
-        """Send an approved plan to a destination (jira/monday/clickup/notion/...)."""
-        return self._client.request(
-            "post", f"/v1/action-plans/{plan_id}/send", body=body, options=options
         )
 
     def create_task(
@@ -293,17 +281,6 @@ class AsyncActionPlans:
             f"/v1/action-plans/{plan_id}/conversation",
             body={"text": text, "confirm": True},
             options=options,
-        )
-
-    async def send(
-        self,
-        plan_id: str,
-        body: SendActionPlanParams,
-        options: RequestOptions | None = None,
-    ) -> WokuRecord:
-        """Send an approved plan to a destination."""
-        return await self._client.request(
-            "post", f"/v1/action-plans/{plan_id}/send", body=body, options=options
         )
 
     async def create_task(

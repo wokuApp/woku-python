@@ -45,7 +45,6 @@ UpdateTicketDestinationParams = Union[_g.UpdateTicketDestinationDto, JsonMapping
 
 CreateActionPlanGroupParams = Union[_g.CreateActionPlanGroupDto, JsonMapping]
 UpdateActionPlanGroupParams = Union[_g.UpdateActionPlanGroupDto, JsonMapping]
-SendActionPlanParams = Union[_g.SendActionPlanDto, JsonMapping]
 CreateActionPlanTaskParams = Union[_g.CreateActionPlanTaskDto, JsonMapping]
 UpdateActionPlanTaskParams = Union[_g.UpdateActionPlanTaskDto, JsonMapping]
 ReorderActionPlanTasksParams = Union[_g.ReorderActionPlanTasksDto, JsonMapping]
