@@ -73,6 +73,44 @@ it directly: `Woku("sk_...")`.
 Request bodies accept either a plain dict (as above) or a generated Pydantic
 model from `woku._generated.models`.
 
+### Customer journeys
+
+Define the moments where you listen, assign a tool you already have to each
+one, and set them off by hand or from your own events.
+
+```python
+journey = woku.journeys.create(
+    {
+        "name": "Sales journey",
+        "moments": [
+            {
+                "key": "sale",
+                "name": "Sale",
+                "tool": "csat",
+                "toolRef": {"type": "csat", "id": csat_tool_id},
+                "enabled": True,
+                "channel": "whatsapp_first",
+                "trigger": {"type": "webhook"},
+                "sequence": {
+                    "attemptOffsetsMs": [0, 28_800_000],
+                    "deadlineMs": 259_200_000,
+                    "cooldownAfterResponseMs": 3_600_000,
+                },
+            }
+        ],
+    }
+)
+
+# Store this now: it signs the journey inbound calls and is shown once.
+print(journey["webhookSecret"])
+
+woku.journeys.update(journey["id"], {"enabled": True})
+woku.journeys.enroll(
+    journey["id"],
+    {"subjectKey": "customer-123", "contact": {"email": "customer@example.com"}},
+)
+```
+
 ## Async
 
 ```python
@@ -144,7 +182,8 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
-`ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`.
+`ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
+`journeys`.
 
 ## License
 

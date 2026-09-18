@@ -33,6 +33,7 @@ from .resources.company import AsyncCompany, Company
 from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
 from .resources.forms import AsyncForms, Forms
+from .resources.journeys import AsyncJourneys, Journeys
 from .resources.quarantines import AsyncQuarantines, Quarantines
 from .resources.reports import AsyncReports, Reports
 from .resources.surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
@@ -110,6 +111,7 @@ class Woku(BaseClient):
         self.dispatches = Dispatches(self)
         self.reports = Reports(self)
         self.company = Company(self)
+        self.journeys = Journeys(self)
         self.quarantines = Quarantines(self)
 
     def request(
@@ -255,6 +257,7 @@ class AsyncWoku(BaseClient):
         self.dispatches = AsyncDispatches(self)
         self.reports = AsyncReports(self)
         self.company = AsyncCompany(self)
+        self.journeys = AsyncJourneys(self)
         self.quarantines = AsyncQuarantines(self)
 
     async def request(
