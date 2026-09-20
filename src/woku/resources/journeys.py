@@ -1,7 +1,7 @@
 """Customer journeys (``/v1/journeys``).
 
-Define the moments where you listen to a customer, assign a tool you already
-have to each one, and set them off by hand or from your own events.
+Define the moments where you listen to a customer, create a tool per enrollment
+or share one within that same moment, and set them off by hand or from your own events.
 """
 
 from __future__ import annotations

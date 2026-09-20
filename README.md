@@ -75,8 +75,13 @@ model from `woku._generated.models`.
 
 ### Customer journeys
 
-Define the moments where you listen, assign a tool you already have to each
-one, and set them off by hand or from your own events.
+Custom moments create CSAT, CES, NPS, or woku tools. `toolScope` defaults to
+`"per_enrollment"`; `"shared"` reuses a tool only for that same moment and tool
+configuration. Existing tools cannot be assigned. Woku moments require
+`toolSpec.fileId` from an upload and use the moment name as their title.
+
+Define the moments where you listen, create a tool for each customer or share
+one within the same moment, and set them off by hand or from your own events.
 
 ```python
 journey = woku.journeys.create(
@@ -87,7 +92,8 @@ journey = woku.journeys.create(
                 "key": "sale",
                 "name": "Sale",
                 "tool": "csat",
-                "toolRef": {"type": "csat", "id": csat_tool_id},
+                "toolScope": "shared",
+                "toolSpec": {"subject": {"es": "tu compra", "en": "your purchase"}},
                 "enabled": True,
                 "channel": "whatsapp_first",
                 "trigger": {"type": "webhook"},
