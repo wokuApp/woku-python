@@ -11,6 +11,7 @@
             "description": "v1 is reachable"
           }
         },
+        "security": [],
         "summary": "V1 namespace healthcheck",
         "tags": [
           "v1"
@@ -671,7 +672,7 @@
         ]
       },
       "post": {
-        "description": "kind: zendesk | salesforce | slack | custom | email. config/credentials are validated per kind. routingConditions support operator \"equals\" (a value) or \"any\" (the whole tracker).",
+        "description": "kind: zendesk | custom | email. config/credentials are validated per kind. routingConditions support operator \"equals\" (a value) or \"any\" (the whole tracker).",
         "operationId": "V1TicketDestinationsController_create",
         "parameters": [],
         "requestBody": {
@@ -679,7 +680,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTicketDestinationDto"
+                "$ref": "#/components/schemas/V1CreateTicketDestinationDto"
               }
             }
           }
@@ -753,7 +754,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTicketDestinationDto"
+                "$ref": "#/components/schemas/V1UpdateTicketDestinationDto"
               }
             }
           }
@@ -813,7 +814,7 @@
     },
     "/v1/ticket-destinations/{id}/test": {
       "post": {
-        "description": "Requires confirm:true. Makes one real outbound call: custom webhooks receive a test payload; zendesk/salesforce/slack run a read-only auth probe; email only validates config. Result is sanitized to { ok, status, message }.",
+        "description": "Requires confirm:true. Makes one real outbound call: custom webhooks receive a test payload; zendesk runs a read-only auth probe; email only validates config. Result is sanitized to { ok, status, message }.",
         "operationId": "V1TicketDestinationsController_test",
         "parameters": [
           {
@@ -1101,6 +1102,20 @@
             }
           },
           {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "description": "Presentation stage; expands to the technical statuses it groups (review=draft; active=approved,in_progress,delivery_error; closed=completed,sent,canceled). Mutually exclusive with status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "review",
+                "active",
+                "closed"
+              ]
+            }
+          },
+          {
             "name": "source",
             "required": false,
             "in": "query",
@@ -1112,6 +1127,19 @@
                 "nps",
                 "csat",
                 "ces"
+              ]
+            }
+          },
+          {
+            "name": "sourceMode",
+            "required": false,
+            "in": "query",
+            "description": "How the source filter maps to plans (AP-0064): \"single\" matches plans whose sources is EXACTLY the given source (requires source); \"mixed\" matches cross-source plans with more than one source (forbids source). Omitting it keeps the legacy membership semantics of source alone.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "single",
+                "mixed"
               ]
             }
           },
@@ -1343,7 +1371,7 @@
     },
     "/v1/action-plans/{id}/send": {
       "post": {
-        "description": "provider: jira | monday | clickup | notion (external, needs target) or internal (managed inside woku, no target).",
+        "description": "provider: internal (manage the plan inside woku). External destinations are not available on the public API.",
         "operationId": "V1ActionPlansController_send",
         "parameters": [
           {
@@ -1361,7 +1389,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendActionPlanDto"
+                "$ref": "#/components/schemas/V1SendActionPlanDto"
               }
             }
           }
@@ -1379,7 +1407,7 @@
             "bearer": []
           }
         ],
-        "summary": "Send an approved plan to a destination",
+        "summary": "Manage an approved plan inside woku",
         "tags": [
           "v1 - action-plans"
         ]
@@ -5025,6 +5053,711 @@
           "v1 - dispatches"
         ]
       }
+    },
+    "/v1/journeys/{id}/enrollments": {
+      "get": {
+        "operationId": "V1JourneysController_listParticipations",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List evaluations of one journey, newest first",
+        "tags": [
+          "v1 - journeys"
+        ]
+      },
+      "post": {
+        "description": "Starts an operator-led v2 participation without requiring its first answer. Legacy definitions retain their enrollment behavior. Use one subjectKey per purchase or case; a stopped reference cannot be restarted.",
+        "operationId": "V1JourneysController_enroll",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the call safe to retry. A retry with the same key returns the original result instead of acting again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1EnrollSubjectBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The subject was enrolled"
+          },
+          "400": {
+            "description": "Validation error, or the journey is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The subject is already enrolled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enroll a subject in this journey",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/enrollments/{enrollmentId}": {
+      "get": {
+        "operationId": "V1JourneysController_getParticipation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "enrollmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one customer evaluation and its moment history",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/enrollments/{enrollmentId}/stop": {
+      "post": {
+        "operationId": "V1JourneysController_stopParticipation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "enrollmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the call safe to retry. A retry with the same key returns the original result instead of acting again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopJourneyParticipationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop this evaluation, retaining answers, tickets, plans and other participations",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/connections": {
+      "get": {
+        "operationId": "V1JourneysController_connections",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read per-moment credential readiness without exposing secrets",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/moments/{stageKey}/url-token": {
+      "post": {
+        "operationId": "V1JourneysController_mintMomentUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the call safe to retry. A retry with the same key returns the original result instead of acting again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate a moment URL, replacing its previous URL credential",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/moments/{stageKey}/sender-secret": {
+      "post": {
+        "operationId": "V1JourneysController_setSenderSecret",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSenderSecretDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Store the sender signing secret encrypted for one moment",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/moments/{stageKey}/preview": {
+      "post": {
+        "operationId": "V1JourneysController_previewMoment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewJourneyMomentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Test payload mapping without creating or sending an evaluation",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys": {
+      "get": {
+        "operationId": "V1JourneysController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The journeys of your company"
+          },
+          "403": {
+            "description": "Invalid or missing API key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List your journeys",
+        "tags": [
+          "v1 - journeys"
+        ]
+      },
+      "post": {
+        "description": "The response carries `webhookSecret` once and only here: it is what signs the inbound calls of this journey. Store it now.",
+        "operationId": "V1JourneysController_create",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the call safe to retry. A retry with the same key returns the original result instead of acting again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1CreateJourneyBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Journey created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a journey",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}": {
+      "get": {
+        "operationId": "V1JourneysController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "404": {
+            "description": "Journey not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one journey with its moments",
+        "tags": [
+          "v1 - journeys"
+        ]
+      },
+      "patch": {
+        "description": "Replacing the moments mints a new version. The enrollments already running keep executing the version they started with.",
+        "operationId": "V1JourneysController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1UpdateJourneyBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Journey updated"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Journey not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a journey, switch it on or off, or replace its moments",
+        "tags": [
+          "v1 - journeys"
+        ]
+      },
+      "delete": {
+        "operationId": "V1JourneysController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Journey deleted"
+          },
+          "404": {
+            "description": "Journey not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a journey",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journeys/{id}/webhook-secret": {
+      "post": {
+        "description": "The previous secret keeps being accepted until the next rotation, so your senders can be updated without a gap.",
+        "operationId": "V1JourneysController_rotateSecret",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The new secret, returned once"
+          },
+          "404": {
+            "description": "Journey not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rotate the signing secret of this journey",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journey-events": {
+      "post": {
+        "description": "Every journey of your company whose moments listen for that name reacts. Names starting with `journey.` are reserved.",
+        "operationId": "V1JourneyEventsController_emit",
+        "parameters": [
+          {
+            "name": "X-Woku-Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key to make the call safe to retry. A retry with the same key returns the original result instead of acting again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1EmitJourneyEventBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "How many journeys received it"
+          },
+          "400": {
+            "description": "Validation error, or a reserved event name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Emit one of your own events",
+        "tags": [
+          "v1 - journeys"
+        ]
+      }
+    },
+    "/v1/journey-entries/{journeyId}": {
+      "get": {
+        "description": "Public customer endpoint; reading it does not start an evaluation.",
+        "operationId": "CustomJourneyEntryController_info",
+        "parameters": [
+          {
+            "name": "journeyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [],
+        "summary": "Read the public evaluation entry for a journey",
+        "tags": [
+          "journey entries"
+        ]
+      },
+      "post": {
+        "description": "Public customer endpoint. Returns the tool and an opaque response token; does not start the journey or send invitations.",
+        "operationId": "CustomJourneyEntryController_prepare",
+        "parameters": [
+          {
+            "name": "journeyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareJourneyEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [],
+        "summary": "Prepare the first evaluation tool for a customer",
+        "tags": [
+          "journey entries"
+        ]
+      }
     }
   },
   "info": {
@@ -5048,10 +5781,8 @@
     "securitySchemes": {
       "bearer": {
         "scheme": "bearer",
-        "bearerFormat": "JWT",
+        "bearerFormat": "API key",
         "type": "http",
-        "name": "Authorization",
-        "in": "header",
         "description": "Company secret API key."
       },
       "PublishableKey": {
@@ -5290,23 +6021,13 @@
           "preset"
         ]
       },
-      "CreateTicketDestinationDto": {
+      "V1CreateTicketDestinationDto": {
         "type": "object",
         "properties": {
           "name": {
             "type": "string",
             "example": "Zendesk Soporte Chile",
             "maxLength": 120
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "zendesk",
-              "salesforce",
-              "slack",
-              "custom",
-              "email"
-            ]
           },
           "config": {
             "type": "object",
@@ -5329,31 +6050,29 @@
           },
           "template": {
             "$ref": "#/components/schemas/TicketDestinationTemplateDto"
-          }
-        },
-        "required": [
-          "name",
-          "kind",
-          "config",
-          "credentials"
-        ]
-      },
-      "UpdateTicketDestinationDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 120
           },
           "kind": {
             "type": "string",
             "enum": [
               "zendesk",
-              "salesforce",
-              "slack",
               "custom",
               "email"
             ]
+          }
+        },
+        "required": [
+          "name",
+          "config",
+          "credentials",
+          "kind"
+        ]
+      },
+      "V1UpdateTicketDestinationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
           },
           "config": {
             "type": "object"
@@ -5378,6 +6097,14 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "zendesk",
+              "custom",
+              "email"
+            ]
           }
         }
       },
@@ -5447,6 +6174,13 @@
       "CreateActionPlanGroupDto": {
         "type": "object",
         "properties": {
+          "notificationEmails": {
+            "description": "Additional email recipients; grants no membership.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "name": {
             "type": "string",
             "example": "Atención en tienda",
@@ -5464,7 +6198,7 @@
             }
           },
           "members": {
-            "description": "Group team; at least one admin and one assignee.",
+            "description": "Group team; at least one admin (assignees optional).",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ActionPlanGroupMemberDto"
@@ -5486,6 +6220,13 @@
       "UpdateActionPlanGroupDto": {
         "type": "object",
         "properties": {
+          "notificationEmails": {
+            "description": "Additional email recipients; grants no membership.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "name": {
             "type": "string",
             "maxLength": 120
@@ -5543,27 +6284,20 @@
           "confirm"
         ]
       },
-      "SendActionPlanDto": {
+      "V1SendActionPlanDto": {
         "type": "object",
         "properties": {
           "provider": {
             "type": "string",
             "enum": [
-              "jira",
-              "monday",
-              "clickup",
-              "notion",
               "internal"
-            ]
-          },
-          "target": {
-            "type": "object",
-            "description": "Provider-specific resource ids (external providers): jira {siteId?, projectId, issueTypeId} · monday {boardId, groupId} · clickup {listId} · notion {databaseId}. Omitted for the managed provider."
+            ],
+            "description": "Only `internal` (manage the plan inside woku) is available."
           },
           "resourceLabel": {
             "type": "string",
             "maxLength": 300,
-            "description": "Human destination summary the drawer built (\"Operaciones CX · Backlog\"); persisted as delivery.resourceLabel. Omitted for the managed provider."
+            "description": "Optional human-readable label for the destination."
           }
         },
         "required": [
@@ -6381,15 +7115,15 @@
           },
           "npsMessage": {
             "type": "string",
-            "description": "Translated NPS question for this locale.",
-            "example": "How likely are you to recommend us?",
+            "description": "Recommended company/product/service fragment for this locale (e.g. \"our company\"), NOT the full question.",
+            "example": "our company",
             "minLength": 3,
             "maxLength": 140
           },
           "audienceType": {
             "type": "string",
-            "description": "Translated audience for this locale.",
-            "example": "customers",
+            "description": "Audience fragment for this locale, NOT the full question.",
+            "example": "a friend or colleague",
             "maxLength": 140
           }
         },
@@ -6409,15 +7143,15 @@
           },
           "npsMessage": {
             "type": "string",
-            "description": "Public NPS question shown to respondents.",
-            "example": "How likely are you to recommend our service to a friend?",
+            "description": "Only the company, product or service recommended (e.g. \"our company\"), NOT the full question. The public question is composed as \"On a scale of 0 to 10, how likely are you to recommend {npsMessage} to {audienceType}?\".",
+            "example": "our company",
             "minLength": 3,
             "maxLength": 140
           },
           "audienceType": {
             "type": "string",
-            "description": "Audience the survey targets.",
-            "example": "customers",
+            "description": "Only who the survey targets (e.g. \"a friend or colleague\"), NOT the full question.",
+            "example": "a friend or colleague",
             "maxLength": 140
           },
           "availableLocales": {
@@ -6461,11 +7195,15 @@
           },
           "npsMessage": {
             "type": "string",
+            "description": "Recommended company/product/service fragment (e.g. \"our company\"), NOT the full question.",
+            "example": "our company",
             "minLength": 3,
             "maxLength": 140
           },
           "audienceType": {
             "type": "string",
+            "description": "Audience fragment (e.g. \"partners\"), NOT the full question.",
+            "example": "a friend or colleague",
             "maxLength": 140
           },
           "availableLocales": {
@@ -6767,6 +7505,262 @@
             "maxLength": 200
           }
         }
+      },
+      "StopJourneyParticipationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 280
+          }
+        }
+      },
+      "SetSenderSecretDto": {
+        "type": "object",
+        "properties": {
+          "senderSecret": {
+            "type": "string",
+            "description": "The signing secret the external system gave you. Stored encrypted; never returned."
+          }
+        },
+        "required": [
+          "senderSecret"
+        ]
+      },
+      "PreviewJourneyMomentDto": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "description": "A sample sender payload. Previewing never sends an evaluation."
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "JourneyRecipientsDto": {
+        "type": "object",
+        "properties": {
+          "ticketEmails": {
+            "description": "Ticket email recipients, including the creator by default.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "planEmails": {
+            "description": "Plan email recipients; does not grant group membership.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ticketEmails",
+          "planEmails"
+        ]
+      },
+      "V1CreateJourneyBodyDto": {
+        "type": "object",
+        "properties": {
+          "authoringVersion": {
+            "type": "number",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Use 2 for the business-form contract. Existing v1 definitions keep their execution rules."
+          },
+          "startMode": {
+            "type": "string",
+            "enum": [
+              "operator",
+              "response",
+              "webhook"
+            ],
+            "description": "Who starts the first moment. Response means a saved first answer, not opening its link."
+          },
+          "recipients": {
+            "$ref": "#/components/schemas/JourneyRecipientsDto"
+          },
+          "name": {
+            "type": "string",
+            "example": "Viaje de ventas"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "A journey is born switched off. Turn it on when it is ready.",
+            "default": false
+          },
+          "moments": {
+            "description": "The moments of the journey. Each creates a woku, CSAT, CES, or NPS from toolSpec. toolScope is per_enrollment (default) or shared within this moment only. Existing toolRef assignments are rejected. In v2 only the first moment can be manual. Later moments use webhook or afterStage; independent webhook settings also let a webhook advance a timed moment. fallbackAfterMs is the optional secondary wait for a webhook-primary moment, anchored to fallbackFromStage. Legacy definitions retain their triggers.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "V1UpdateJourneyBodyDto": {
+        "type": "object",
+        "properties": {
+          "authoringVersion": {
+            "type": "number",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Use 2 for the business-form contract. Existing v1 definitions keep their execution rules."
+          },
+          "startMode": {
+            "type": "string",
+            "enum": [
+              "operator",
+              "response",
+              "webhook"
+            ],
+            "description": "Who starts the first moment. Response means a saved first answer, not opening its link."
+          },
+          "recipients": {
+            "$ref": "#/components/schemas/JourneyRecipientsDto"
+          },
+          "name": {
+            "type": "string",
+            "example": "Viaje de ventas"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "moments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "V1JourneyContactDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "cliente@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone with country code, digits only",
+            "example": "56911111111"
+          }
+        }
+      },
+      "V1JourneyTrackerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "campaign"
+          },
+          "value": {
+            "type": "string",
+            "example": "black-friday"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "V1EnrollSubjectBodyDto": {
+        "type": "object",
+        "properties": {
+          "subjectKey": {
+            "type": "string",
+            "description": "Your own key for who is enrolled: a customer id, an order, a ticket.",
+            "example": "cliente-123"
+          },
+          "contact": {
+            "description": "Where to reach the subject. At least one of email or phone.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/V1JourneyContactDto"
+              }
+            ]
+          },
+          "trackers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V1JourneyTrackerDto"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Anything you want kept with it"
+          }
+        },
+        "required": [
+          "subjectKey",
+          "contact"
+        ]
+      },
+      "V1EmitJourneyEventBodyDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "example": "crm.deal.won"
+          },
+          "subjectKey": {
+            "type": "string",
+            "example": "cliente-123"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/V1JourneyContactDto"
+          },
+          "trackers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V1JourneyTrackerDto"
+            }
+          },
+          "metadata": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "event",
+          "subjectKey"
+        ]
+      },
+      "PrepareJourneyEntryDto": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable random request ID for retrying this preparation."
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "example": "56912345678"
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "requestId"
+        ]
       }
     }
   }

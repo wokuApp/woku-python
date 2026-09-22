@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Annotated, Any, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -166,15 +167,12 @@ class TicketDestinationTemplateDto(BaseModel):
 
 class Kind(Enum):
     zendesk = 'zendesk'
-    salesforce = 'salesforce'
-    slack = 'slack'
     custom = 'custom'
     email = 'email'
 
 
-class CreateTicketDestinationDto(BaseModel):
+class V1CreateTicketDestinationDto(BaseModel):
     name: Annotated[str, Field(examples=['Zendesk Soporte Chile'], max_length=120)]
-    kind: Kind
     config: dict[str, Any]
     """
     Non-secret provider config (validated per kind).
@@ -189,11 +187,11 @@ class CreateTicketDestinationDto(BaseModel):
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
+    kind: Kind
 
 
-class UpdateTicketDestinationDto(BaseModel):
+class V1UpdateTicketDestinationDto(BaseModel):
     name: Annotated[Optional[str], Field(max_length=120)] = None
-    kind: Optional[Kind] = None
     config: Optional[dict[str, Any]] = None
     credentials: Optional[dict[str, Any]] = None
     """
@@ -206,6 +204,7 @@ class UpdateTicketDestinationDto(BaseModel):
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
     enabled: Optional[bool] = None
+    kind: Optional[Kind] = None
 
 
 class TestTicketDestinationBodyDTO(BaseModel):
@@ -242,6 +241,10 @@ class ActionPlanGroupMemberDto(BaseModel):
 
 
 class CreateActionPlanGroupDto(BaseModel):
+    notificationEmails: Optional[list[str]] = None
+    """
+    Additional email recipients; grants no membership.
+    """
     name: Annotated[str, Field(examples=['Atención en tienda'], max_length=120)]
     description: Annotated[Optional[str], Field(max_length=500)] = None
     conditions: list[ActionPlanGroupConditionDto]
@@ -250,7 +253,7 @@ class CreateActionPlanGroupDto(BaseModel):
     """
     members: list[ActionPlanGroupMemberDto]
     """
-    Group team; at least one admin and one assignee.
+    Group team; at least one admin (assignees optional).
     """
     threshold: Annotated[Optional[float], Field(ge=1.0)] = 300
     """
@@ -259,6 +262,10 @@ class CreateActionPlanGroupDto(BaseModel):
 
 
 class UpdateActionPlanGroupDto(BaseModel):
+    notificationEmails: Optional[list[str]] = None
+    """
+    Additional email recipients; grants no membership.
+    """
     name: Annotated[Optional[str], Field(max_length=120)] = None
     description: Annotated[Optional[str], Field(max_length=500)] = None
     """
@@ -285,22 +292,21 @@ class PostPlanReplyBodyDTO(BaseModel):
 
 
 class Provider(Enum):
-    jira = 'jira'
-    monday = 'monday'
-    clickup = 'clickup'
-    notion = 'notion'
+    """
+    Only `internal` (manage the plan inside woku) is available.
+    """
+
     internal = 'internal'
 
 
-class SendActionPlanDto(BaseModel):
+class V1SendActionPlanDto(BaseModel):
     provider: Provider
-    target: Optional[dict[str, Any]] = None
     """
-    Provider-specific resource ids (external providers): jira {siteId?, projectId, issueTypeId} · monday {boardId, groupId} · clickup {listId} · notion {databaseId}. Omitted for the managed provider.
+    Only `internal` (manage the plan inside woku) is available.
     """
     resourceLabel: Annotated[Optional[str], Field(max_length=300)] = None
     """
-    Human destination summary the drawer built ("Operaciones CX · Backlog"); persisted as delivery.resourceLabel. Omitted for the managed provider.
+    Optional human-readable label for the destination.
     """
 
 
@@ -876,21 +882,16 @@ class V1CreateFormResponseBodyDto(BaseModel):
 class NpsToolLocalizedContentBodyDTO(BaseModel):
     locale: Annotated[Locale, Field(examples=['en'])]
     npsMessage: Annotated[
-        str,
-        Field(
-            examples=['How likely are you to recommend us?'],
-            max_length=140,
-            min_length=3,
-        ),
+        str, Field(examples=['our company'], max_length=140, min_length=3)
     ]
     """
-    Translated NPS question for this locale.
+    Recommended company/product/service fragment for this locale (e.g. "our company"), NOT the full question.
     """
     audienceType: Annotated[
-        Optional[str], Field(examples=['customers'], max_length=140)
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
     ] = None
     """
-    Translated audience for this locale.
+    Audience fragment for this locale, NOT the full question.
     """
 
 
@@ -909,21 +910,16 @@ class CreateNpsToolBodyDTO(BaseModel):
     Tool name for identification.
     """
     npsMessage: Annotated[
-        str,
-        Field(
-            examples=['How likely are you to recommend our service to a friend?'],
-            max_length=140,
-            min_length=3,
-        ),
+        str, Field(examples=['our company'], max_length=140, min_length=3)
     ]
     """
-    Public NPS question shown to respondents.
+    Only the company, product or service recommended (e.g. "our company"), NOT the full question. The public question is composed as "On a scale of 0 to 10, how likely are you to recommend {npsMessage} to {audienceType}?".
     """
     audienceType: Annotated[
-        Optional[str], Field(examples=['customers'], max_length=140)
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
     ] = None
     """
-    Audience the survey targets.
+    Only who the survey targets (e.g. "a friend or colleague"), NOT the full question.
     """
     availableLocales: Annotated[Optional[list[str]], Field(examples=[['es', 'en']])] = (
         None
@@ -945,8 +941,18 @@ class DefaultLocale2(Enum):
 
 class UpdateNpsToolBodyDTO(BaseModel):
     name: Annotated[Optional[str], Field(max_length=140)] = None
-    npsMessage: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
-    audienceType: Annotated[Optional[str], Field(max_length=140)] = None
+    npsMessage: Annotated[
+        Optional[str], Field(examples=['our company'], max_length=140, min_length=3)
+    ] = None
+    """
+    Recommended company/product/service fragment (e.g. "our company"), NOT the full question.
+    """
+    audienceType: Annotated[
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
+    ] = None
+    """
+    Audience fragment (e.g. "partners"), NOT the full question.
+    """
     availableLocales: Annotated[Optional[list[str]], Field(examples=[['es', 'en']])] = (
         None
     )
@@ -1127,3 +1133,134 @@ class UpdateTicketBodyDTO(BaseModel):
     severity: Optional[Severity] = None
     aiSummary: Annotated[Optional[str], Field(max_length=2000)] = None
     aiCategory: Annotated[Optional[str], Field(max_length=200)] = None
+
+
+class StopJourneyParticipationDto(BaseModel):
+    reason: Annotated[Optional[str], Field(max_length=280)] = None
+
+
+class SetSenderSecretDto(BaseModel):
+    senderSecret: str
+    """
+    The signing secret the external system gave you. Stored encrypted; never returned.
+    """
+
+
+class PreviewJourneyMomentDto(BaseModel):
+    payload: dict[str, Any]
+    """
+    A sample sender payload. Previewing never sends an evaluation.
+    """
+
+
+class JourneyRecipientsDto(BaseModel):
+    ticketEmails: list[str]
+    """
+    Ticket email recipients, including the creator by default.
+    """
+    planEmails: list[str]
+    """
+    Plan email recipients; does not grant group membership.
+    """
+
+
+class AuthoringVersion(Enum):
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+
+    number_1 = 1
+    number_2 = 2
+
+
+class StartMode(Enum):
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class V1CreateJourneyBodyDto(BaseModel):
+    authoringVersion: Optional[AuthoringVersion] = None
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+    startMode: Optional[StartMode] = None
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+    recipients: Optional[JourneyRecipientsDto] = None
+    name: Annotated[str, Field(examples=['Viaje de ventas'])]
+    enabled: Optional[bool] = False
+    """
+    A journey is born switched off. Turn it on when it is ready.
+    """
+    moments: Optional[list[dict[str, Any]]] = None
+    """
+    The moments of the journey. Each creates a woku, CSAT, CES, or NPS from toolSpec. toolScope is per_enrollment (default) or shared within this moment only. Existing toolRef assignments are rejected. In v2 only the first moment can be manual. Later moments use webhook or afterStage; independent webhook settings also let a webhook advance a timed moment. fallbackAfterMs is the optional secondary wait for a webhook-primary moment, anchored to fallbackFromStage. Legacy definitions retain their triggers.
+    """
+
+
+class V1UpdateJourneyBodyDto(BaseModel):
+    authoringVersion: Optional[AuthoringVersion] = None
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+    startMode: Optional[StartMode] = None
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+    recipients: Optional[JourneyRecipientsDto] = None
+    name: Annotated[Optional[str], Field(examples=['Viaje de ventas'])] = None
+    enabled: Optional[bool] = None
+    moments: Optional[list[dict[str, Any]]] = None
+
+
+class V1JourneyContactDto(BaseModel):
+    email: Annotated[Optional[str], Field(examples=['cliente@example.com'])] = None
+    phone: Annotated[Optional[str], Field(examples=['56911111111'])] = None
+    """
+    Phone with country code, digits only
+    """
+
+
+class V1JourneyTrackerDto(BaseModel):
+    name: Annotated[str, Field(examples=['campaign'])]
+    value: Annotated[str, Field(examples=['black-friday'])]
+
+
+class V1EnrollSubjectBodyDto(BaseModel):
+    subjectKey: Annotated[str, Field(examples=['cliente-123'])]
+    """
+    Your own key for who is enrolled: a customer id, an order, a ticket.
+    """
+    contact: V1JourneyContactDto
+    """
+    Where to reach the subject. At least one of email or phone.
+    """
+    trackers: Optional[list[V1JourneyTrackerDto]] = None
+    metadata: Optional[dict[str, Any]] = None
+    """
+    Anything you want kept with it
+    """
+
+
+class V1EmitJourneyEventBodyDto(BaseModel):
+    event: Annotated[str, Field(examples=['crm.deal.won'])]
+    subjectKey: Annotated[str, Field(examples=['cliente-123'])]
+    contact: Optional[V1JourneyContactDto] = None
+    trackers: Optional[list[V1JourneyTrackerDto]] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+class PrepareJourneyEntryDto(BaseModel):
+    requestId: UUID
+    """
+    Stable random request ID for retrying this preparation.
+    """
+    email: Optional[str] = None
+    phone: Annotated[Optional[str], Field(examples=['56912345678'])] = None
+    reference: Annotated[Optional[str], Field(max_length=200)] = None

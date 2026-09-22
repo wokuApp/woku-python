@@ -75,47 +75,84 @@ model from `woku._generated.models`.
 
 ### Customer journeys
 
-Custom moments create CSAT, CES, NPS, or woku tools. `toolScope` defaults to
-`"per_enrollment"`; `"shared"` reuses a tool only for that same moment and tool
-configuration. Existing tools cannot be assigned. Woku moments require
-`toolSpec.fileId` from an upload and use the moment name as their title.
+Set `authoringVersion: 2` and choose `startMode`: `operator` starts from the
+platform/API without requiring the first answer; `response` starts only when the
+customer answers the first tool through a QR/shared link; `webhook` starts from an
+external system. Only operator mode uses `enroll`. Later moments use waits or their
+own webhooks. A webhook advances its moment and cancels the wait. An optional
+secondary fallback evaluates the same webhook-primary moment once.
 
-Define the moments where you listen, create a tool for each customer or share
-one within the same moment, and set them off by hand or from your own events.
+Each moment owns its CSAT, CES, NPS or woku tool. Choose `toolScope` as
+`per_enrollment` or `shared` within that moment and configuration. Existing tools
+cannot be assigned. Woku needs an uploaded `toolSpec.fileId`; other instruments
+use question variables. This example uses one initial send and no reminders.
 
 ```python
-journey = woku.journeys.create(
-    {
-        "name": "Sales journey",
-        "moments": [
-            {
-                "key": "sale",
-                "name": "Sale",
-                "tool": "csat",
-                "toolScope": "shared",
-                "toolSpec": {"subject": {"es": "tu compra", "en": "your purchase"}},
-                "enabled": True,
-                "channel": "whatsapp_first",
-                "trigger": {"type": "webhook"},
-                "sequence": {
-                    "attemptOffsetsMs": [0, 28_800_000],
-                    "deadlineMs": 259_200_000,
-                    "cooldownAfterResponseMs": 3_600_000,
-                },
-            }
-        ],
-    }
-)
+import httpx
 
-# Store this now: it signs the journey inbound calls and is shown once.
-print(journey["webhookSecret"])
+DAY = 86_400_000
+sequence = {"attemptOffsetsMs": [0], "deadlineMs": 3 * DAY, "cooldownAfterResponseMs": 0}
+journey = woku.journeys.create({
+    "name": "Purchase and delivery",
+    "authoringVersion": 2,
+    "startMode": "webhook",
+    "recipients": {
+        "ticketEmails": ["support@example.com"],
+        "planEmails": ["operations@example.com"],
+    },
+    "moments": [
+        {
+            "key": "sale", "name": "Purchase", "tool": "csat", "enabled": True,
+            "channel": "email", "trigger": {"type": "webhook"},
+            "webhook": {"verification": {"mode": "url_token"}},
+            "toolSpec": {"subject": {"es": "tu compra", "en": "your purchase"}},
+            "sequence": sequence,
+        },
+        {
+            "key": "delivery", "name": "Delivery", "tool": "ces", "enabled": True,
+            "channel": "email", "trigger": {"type": "webhook"},
+            "webhook": {"verification": {"mode": "url_token"}},
+            "fallbackFromStage": "sale", "fallbackAfterMs": 5 * DAY,
+            "toolSpec": {"subject": {"es": "recibir tu pedido", "en": "receiving your order"}},
+            "sequence": sequence,
+        },
+    ],
+})
 
+# Generate once and securely store each URL in its sending system.
+# Generating again replaces the previous moment credential.
+sale = woku.journeys.mint_moment_url(journey["id"], "sale")
+delivery = woku.journeys.mint_moment_url(journey["id"], "delivery")
 woku.journeys.update(journey["id"], {"enabled": True})
-woku.journeys.enroll(
-    journey["id"],
-    {"subjectKey": "customer-123", "contact": {"email": "customer@example.com"}},
-)
+
+# Different systems share the same purchase reference.
+httpx.post(sale["url"], headers={"X-Woku-Event-Id": "crm-order-123"}, json={
+    "subjectKey": "order-123", "contact": {"email": "customer@example.com"},
+}).raise_for_status()
+httpx.post(delivery["url"], headers={"X-Woku-Event-Id": "delivery-order-123"}, json={
+    "subjectKey": "order-123",
+}).raise_for_status()
+
+page = woku.journeys.list_enrollments(journey["id"], {"limit": 20})
+case = next((item for item in page["items"] if item["subjectKey"] == "order-123"), None)
+if case:
+    woku.journeys.stop_enrollment(journey["id"], case["id"], {
+        "reason": "Customer requested no further evaluations",
+    }, {"idempotency_key": f"stop-{case['id']}"})
 ```
+
+`get_enrollment` reads a specific case. Enrollment lists return `{items, nextCursor}`;
+pass `nextCursor` as the next request's `cursor`. `connections` reports credential
+readiness, `set_sender_secret` configures an external signing secret, and
+`preview_moment` tests saved payload mapping without starting or sending.
+All methods have matching `AsyncWoku` variants.
+
+Stop preserves answers, tickets, plans, shared tools and other cases. Messages
+already accepted by their provider may arrive. `stopping` means cleanup is still
+in progress; `dispatchOutcomeUncertain` marks an interrupted in-flight send.
+Ticket and plan recipients are independent; adding a plan email grants no role.
+Existing journeys keep their execution contract. Create a new v2 journey to adopt
+these rules, and review/activate it after its recipients and connections are ready.
 
 ## Async
 
