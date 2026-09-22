@@ -16,9 +16,14 @@ if TYPE_CHECKING:
     from .._client import AsyncWoku, Woku
 
 
+class JourneyPlanMember(TypedDict):
+    userId: str
+    role: Literal["admin", "assignee"]
+
+
 class JourneyRecipients(TypedDict):
     ticketEmails: list[str]
-    planEmails: list[str]
+    planMembers: list[JourneyPlanMember]
 
 
 class JourneyInput(TypedDict, total=False):

@@ -7539,6 +7539,26 @@
           "payload"
         ]
       },
+      "JourneyPlanMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Company member user id."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "assignee"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "role"
+        ]
+      },
       "JourneyRecipientsDto": {
         "type": "object",
         "properties": {
@@ -7549,17 +7569,17 @@
               "type": "string"
             }
           },
-          "planEmails": {
-            "description": "Plan email recipients; does not grant group membership.",
+          "planMembers": {
+            "description": "Platform users who belong to the journey action-plan group.",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/JourneyPlanMemberDto"
             }
           }
         },
         "required": [
           "ticketEmails",
-          "planEmails"
+          "planMembers"
         ]
       },
       "V1CreateJourneyBodyDto": {

@@ -1153,14 +1153,22 @@ class PreviewJourneyMomentDto(BaseModel):
     """
 
 
+class JourneyPlanMemberDto(BaseModel):
+    userId: str
+    """
+    Company member user id.
+    """
+    role: Role
+
+
 class JourneyRecipientsDto(BaseModel):
     ticketEmails: list[str]
     """
     Ticket email recipients, including the creator by default.
     """
-    planEmails: list[str]
+    planMembers: list[JourneyPlanMemberDto]
     """
-    Plan email recipients; does not grant group membership.
+    Platform users who belong to the journey action-plan group.
     """
 
 

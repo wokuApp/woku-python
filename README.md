@@ -98,7 +98,10 @@ journey = woku.journeys.create({
     "startMode": "webhook",
     "recipients": {
         "ticketEmails": ["support@example.com"],
-        "planEmails": ["operations@example.com"],
+        "planMembers": [
+            {"userId": "507f1f77bcf86cd799439011", "role": "admin"},
+            {"userId": "507f1f77bcf86cd799439012", "role": "assignee"},
+        ],
     },
     "moments": [
         {
