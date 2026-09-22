@@ -21,9 +21,14 @@ class JourneyPlanMember(TypedDict):
     role: Literal["admin", "assignee"]
 
 
-class JourneyRecipients(TypedDict):
+class _RequiredJourneyRecipients(TypedDict):
     ticketEmails: list[str]
     planMembers: list[JourneyPlanMember]
+
+
+class JourneyRecipients(_RequiredJourneyRecipients, total=False):
+    ticketsEnabled: bool
+    plansEnabled: bool
 
 
 class JourneyInput(TypedDict, total=False):

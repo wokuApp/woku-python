@@ -1162,6 +1162,14 @@ class JourneyPlanMemberDto(BaseModel):
 
 
 class JourneyRecipientsDto(BaseModel):
+    ticketsEnabled: Optional[bool] = None
+    """
+    Omit to keep ticket creation enabled.
+    """
+    plansEnabled: Optional[bool] = None
+    """
+    Omit to keep plan creation enabled.
+    """
     ticketEmails: list[str]
     """
     Ticket email recipients, including the creator by default.

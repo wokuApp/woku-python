@@ -7562,6 +7562,14 @@
       "JourneyRecipientsDto": {
         "type": "object",
         "properties": {
+          "ticketsEnabled": {
+            "type": "boolean",
+            "description": "Omit to keep ticket creation enabled."
+          },
+          "plansEnabled": {
+            "type": "boolean",
+            "description": "Omit to keep plan creation enabled."
+          },
           "ticketEmails": {
             "description": "Ticket email recipients, including the creator by default.",
             "type": "array",

@@ -86,6 +86,7 @@ Each moment owns its CSAT, CES, NPS or woku tool. Choose `toolScope` as
 `per_enrollment` or `shared` within that moment and configuration. Existing tools
 cannot be assigned. Woku needs an uploaded `toolSpec.fileId`; other instruments
 use question variables. This example uses one initial send and no reminders.
+For a bilingual Woku, set `toolSpec.descriptionEn` to its English title.
 
 ```python
 import httpx
@@ -97,6 +98,8 @@ journey = woku.journeys.create({
     "authoringVersion": 2,
     "startMode": "webhook",
     "recipients": {
+        "ticketsEnabled": True,
+        "plansEnabled": True,
         "ticketEmails": ["support@example.com"],
         "planMembers": [
             {"userId": "507f1f77bcf86cd799439011", "role": "admin"},
@@ -154,6 +157,10 @@ Stop preserves answers, tickets, plans, shared tools and other cases. Messages
 already accepted by their provider may arrive. `stopping` means cleanup is still
 in progress; `dispatchOutcomeUncertain` marks an interrupted in-flight send.
 Ticket and plan recipients are independent; adding a plan email grants no role.
+Set `recipients.ticketsEnabled` or `recipients.plansEnabled` to `False` to stop
+that action independently. Both default to enabled when omitted. Disabled
+actions do not require completed recipients, and saved settings remain for
+later reactivation.
 Existing journeys keep their execution contract. Create a new v2 journey to adopt
 these rules, and review/activate it after its recipients and connections are ready.
 
