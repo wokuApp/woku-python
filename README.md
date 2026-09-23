@@ -140,7 +140,11 @@ httpx.post(delivery["url"], headers={"X-Woku-Event-Id": "delivery-order-123"}, j
 }).raise_for_status()
 
 page = woku.journeys.list_enrollments(journey["id"], {"limit": 20})
-case = next((item for item in page["items"] if item["subjectKey"] == "order-123"), None)
+case = next((
+    item for item in page["items"]
+    if item["subjectKey"] == "order-123"
+    and item.get("lifecycle") in ("pending", "running")
+), None)
 if case:
     woku.journeys.stop_enrollment(journey["id"], case["id"], {
         "reason": "Customer requested no further evaluations",
@@ -156,6 +160,13 @@ All methods have matching `AsyncWoku` variants.
 Stop preserves answers, tickets, plans, shared tools and other cases. Messages
 already accepted by their provider may arrive. `stopping` means cleanup is still
 in progress; `dispatchOutcomeUncertain` marks an interrupted in-flight send.
+
+An enrollment reports `pendingMoments` for tools not yet sent and `completed`
+when the customer answers the final tool or 30 days pass after its first send.
+The same `subjectKey` may enter a new cycle after completion or stopping; each
+cycle has a distinct enrollment `id`. Only one cycle for that key may be in
+progress in the same journey.
+
 Ticket and plan recipients are independent; adding a plan email grants no role.
 Set `recipients.ticketsEnabled` or `recipients.plansEnabled` to `False` to stop
 that action independently. Both default to enabled when omitted. Disabled
