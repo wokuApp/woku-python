@@ -82,9 +82,12 @@ external system. Only operator mode uses `enroll`. Later moments use waits or th
 own webhooks. A webhook advances its moment and cancels the wait. An optional
 secondary fallback evaluates the same webhook-primary moment once.
 
-Each moment owns its CSAT, CES, NPS or woku tool. Choose `toolScope` as
-`per_enrollment` or `shared` within that moment and configuration. Existing tools
-cannot be assigned. Woku needs an uploaded `toolSpec.fileId`; other instruments
+Each moment owns its CSAT, CES, NPS or woku tool. New v2 moments default to
+`toolScope: shared`, which reuses the tool within that moment and configuration.
+Choose `per_enrollment` for one tool per participation. The authoring form
+suggests a 10-day wait for later moments; API callers must specify the delay.
+In v2, `delayMs: 0` means one hour. Existing tools cannot be
+assigned. Woku needs an uploaded `toolSpec.fileId`; other instruments
 use question variables. This example uses one initial send and no reminders.
 For a bilingual Woku, set `toolSpec.descriptionEn` to its English title.
 
