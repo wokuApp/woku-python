@@ -501,6 +501,17 @@ class V1ShareWokuBodyDto(BaseModel):
     """
 
 
+class Type(Enum):
+    image = 'image'
+    video = 'video'
+
+
+class WokuMediaUploadResultDto(BaseModel):
+    fileId: str
+    filename: str
+    type: Type
+
+
 class V1ApiKeyResultDto(BaseModel):
     apiKey: str
     """
@@ -1150,6 +1161,10 @@ class PreviewJourneyMomentDto(BaseModel):
     payload: dict[str, Any]
     """
     A sample sender payload. Previewing never sends an evaluation.
+    """
+    stage: Optional[dict[str, Any]] = None
+    """
+    Unsaved version of this moment for a side-effect-free preview.
     """
 
 

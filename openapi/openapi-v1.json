@@ -2330,6 +2330,66 @@
         ]
       }
     },
+    "/v1/woku-media": {
+      "post": {
+        "description": "Send one local file with a company secret key. Images up to 10 MB are optimized to WebP; MP4 videos can be up to 25 MB. Returns a Woku fileId for standalone Wokus or journey moments.",
+        "operationId": "V1WokuMediaController_upload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Media stored for reuse in Wokus and journey moments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WokuMediaUploadResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing, invalid or oversized media",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid company key"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a Woku image or MP4 video",
+        "tags": [
+          "v1 - wokus"
+        ]
+      }
+    },
     "/v1/companies/me": {
       "get": {
         "description": "Returns the company resolved from the Bearer key along with its folders and wokus.",
@@ -6556,6 +6616,30 @@
           }
         }
       },
+      "WokuMediaUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "format": "ObjectId"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video"
+            ]
+          }
+        },
+        "required": [
+          "fileId",
+          "filename",
+          "type"
+        ]
+      },
       "V1ApiKeyResultDto": {
         "type": "object",
         "properties": {
@@ -7533,6 +7617,10 @@
           "payload": {
             "type": "object",
             "description": "A sample sender payload. Previewing never sends an evaluation."
+          },
+          "stage": {
+            "type": "object",
+            "description": "Unsaved version of this moment for a side-effect-free preview."
           }
         },
         "required": [

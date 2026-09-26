@@ -91,6 +91,12 @@ assigned. Woku needs an uploaded `toolSpec.fileId`; other instruments
 use question variables. This example uses one initial send and no reminders.
 For a bilingual Woku, set `toolSpec.descriptionEn` to its English title.
 
+CLI agents can upload a local image or MP4 with multipart to
+`POST /v1/woku-media` using the company key. Its `fileId` can be used as
+`toolSpec.fileId` in a journey Woku moment or with the MCP `create_woku` tool.
+The generated models include `WokuMediaUploadResultDto`; this Python client
+does not yet wrap the binary upload endpoint.
+
 ```python
 import httpx
 
