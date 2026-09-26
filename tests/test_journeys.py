@@ -68,3 +68,49 @@ async def test_async_journey_connections_and_case_operations() -> None:
     assert json.loads(preview.calls.last.request.content) == {
         "payload": {"order": "order1"}
     }
+
+
+def test_generated_journey_body_preserves_dynamic_content_and_schema_alias() -> None:
+    from woku._generated.models import V1CreateJourneyBodyDto
+
+    moment = {
+        "key": "delivery",
+        "name": "Delivery",
+        "tool": "woku",
+        "toolScope": "per_enrollment",
+        "enabled": True,
+        "channel": "email",
+        "trigger": {"type": "webhook"},
+        "sequence": {
+            "attemptOffsetsMs": [0, 86400000],
+            "deadlineMs": 259200000,
+            "cooldownAfterResponseMs": 0,
+        },
+        "webhook": {
+            "contentMode": "webhook",
+            "schema": {"type": "object", "properties": {"id": {"type": "string"}}},
+            "payload": {
+                "subjectKey": "id",
+                "email": "customer.email",
+                "clientFields": [{"key": "tier", "path": "customer.tier"}],
+            },
+            "content": {
+                "description": {
+                    "mode": "javascript",
+                    "value": "return payload.late ? 'Late delivery' : 'Delivery';",
+                },
+                "descriptionEn": {"mode": "literal", "value": "Delivery experience"},
+                "imageUrlPath": "order.image",
+                "trackers": [{"name": "Order", "path": "id"}],
+                "folderSecondaryKey": {
+                    "mode": "javascript",
+                    "value": "return payload.id;",
+                },
+            },
+        },
+    }
+    model = V1CreateJourneyBodyDto.model_validate(
+        {"name": "Hybrid", "moments": [moment]}
+    )
+    serialized = model.model_dump(mode="json", by_alias=True, exclude_none=True)
+    assert serialized["moments"][0] == moment

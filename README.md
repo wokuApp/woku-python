@@ -263,3 +263,11 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 ## License
 
 MIT
+
+Advanced journey moments are represented by the generated `V1JourneyMomentDto`
+and nested webhook models in `woku._generated.models`: JSON schema, conditional
+JavaScript text, localized variables, client field mappings, public image URL
+paths, folders and trackers. HTTP uses `sequence`; MCP uses `cadence`. The saved
+preview returns `200` with resolved content and sends nothing. Unknown moment
+fields are rejected. The legacy journey-wide `webhookSecret` is separate from
+per-moment URL tokens and sender HMAC secrets.
