@@ -2366,7 +2366,7 @@
             }
           },
           "400": {
-            "description": "Missing, invalid or oversized media",
+            "description": "Missing, invalid media or image over 10 MB",
             "content": {
               "application/json": {
                 "schema": {
@@ -2377,6 +2377,9 @@
           },
           "403": {
             "description": "Invalid company key"
+          },
+          "413": {
+            "description": "The media upload exceeds 25 MB"
           }
         },
         "security": [

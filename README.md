@@ -96,6 +96,8 @@ CLI agents can upload a local image or MP4 with multipart to
 `toolSpec.fileId` in a journey Woku moment or with the MCP `create_woku` tool.
 The generated models include `WokuMediaUploadResultDto`; this Python client
 does not yet wrap the binary upload endpoint.
+The endpoint returns `400` for invalid media and `413` for multipart requests
+over 25 MB.
 
 ```python
 import httpx
