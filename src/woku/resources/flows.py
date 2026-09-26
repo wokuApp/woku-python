@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -31,7 +32,9 @@ class Flows:
         return self._client.get_page("/v1/flows", params, options)
 
     def get(self, flow_id: str, options: RequestOptions | None = None) -> WokuRecord:
-        return self._client.request("get", f"/v1/flows/{flow_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/flows/{quote(flow_id, safe='')}", options=options
+        )
 
 
 class AsyncFlows:
@@ -51,5 +54,5 @@ class AsyncFlows:
         self, flow_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/flows/{flow_id}", options=options
+            "get", f"/v1/flows/{quote(flow_id, safe='')}", options=options
         )

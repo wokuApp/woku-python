@@ -12,7 +12,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC="$ROOT/openapi/openapi-v1.json"
-OUT="$ROOT/src/woku/_generated/models.py"
+OUTPUT_ROOT="${WOKU_CODEGEN_OUTPUT_ROOT:-$ROOT/src/woku/_generated}"
+mkdir -p "$OUTPUT_ROOT"
+OUT="$OUTPUT_ROOT/models.py"
 
 uvx --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
   --input "$SPEC" \
@@ -74,7 +76,7 @@ def collect(value):
             collect(child)
 
 for path, operations in spec["paths"].items():
-    if path.startswith("/v1/journeys") or path.startswith("/v1/journey-entries") or path == "/v1/journey-events":
+    if path.startswith("/v1/journeys") or path.startswith("/v1/journey-entries") or path in ["/v1/journey-events", "/v1/woku-media", "/v1/captures"]:
         collect(operations)
 spec["paths"] = {}
 spec["components"] = {"schemas": selected}
@@ -84,7 +86,7 @@ PY
 uvx --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
   --input "$JOURNEY_SPEC" \
   --input-file-type openapi \
-  --output "$ROOT/src/woku/_generated/journeys.py" \
+  --output "$OUTPUT_ROOT/journeys.py" \
   --output-model-type typing.TypedDict \
   --target-python-version 3.9 \
   --enum-field-as-literal all \
@@ -93,7 +95,7 @@ uvx --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
   --disable-timestamp \
   --collapse-root-models
 # Keep the generated header deterministic despite the temporary subset path.
-python3 - "$ROOT/src/woku/_generated/journeys.py" <<'PY'
+python3 - "$OUTPUT_ROOT/journeys.py" <<'PY'
 import re
 import sys
 

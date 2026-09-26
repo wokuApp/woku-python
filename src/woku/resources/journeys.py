@@ -6,11 +6,13 @@ or share one within that same moment, and set them off by hand or from your own 
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Iterator
 from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote, urljoin
 
 from pydantic import BaseModel
 
+from .._exceptions import WokuError
 from .._options import RequestOptions
 
 if TYPE_CHECKING:
@@ -79,7 +81,7 @@ class Journeys:
             "post",
             f"/v1/journey-entries/{quote(journey_id, safe='')}",
             body=body,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def list(self, options: RequestOptions | None = None) -> list[Journey]:
@@ -102,7 +104,9 @@ class Journeys:
         The response carries the legacy ``woku_signature`` secret once.
         V2 URL tokens and sender HMAC secrets are separate moment credentials.
         """
-        return self._client.request("post", "/v1/journeys", body=body, options=options)
+        return self._client.request(
+            "post", "/v1/journeys", body=body, options=options, idempotent=True
+        )
 
     def update(
         self,
@@ -136,7 +140,7 @@ class Journeys:
             "post",
             f"/v1/journeys/{quote(journey_id, safe='')}/webhook-secret",
             body={},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def enroll(
@@ -151,6 +155,7 @@ class Journeys:
             f"/v1/journeys/{quote(journey_id, safe='')}/enrollments",
             body=body,
             options=options,
+            idempotent=True,
         )
 
     def list_enrollments(
@@ -166,6 +171,30 @@ class Journeys:
             query=params,
             options=options,
         )
+
+    def iter_enrollments(
+        self,
+        journey_id: str,
+        params: ListEnrollmentsParams | None = None,
+        options: RequestOptions | None = None,
+    ) -> Iterator[JourneyEnrollment]:
+        """Walk exact customer cases lazily without repeating a cursor."""
+        query = {**dict(params or {}), **dict((options or {}).get("params") or {})}
+        seen: set[str] = set()
+        while True:
+            page = self.list_enrollments(
+                journey_id, options={**(options or {}), "params": query}
+            )
+            yield from page["items"]
+            cursor = page.get("nextCursor")
+            if not cursor:
+                return
+            if cursor in seen or cursor == query.get("cursor"):
+                raise WokuError(
+                    "Enrollment pagination did not advance.", code="pagination_error"
+                )
+            seen.add(cursor)
+            query = {**query, "cursor": cursor}
 
     def get_enrollment(
         self, journey_id: str, enrollment_id: str, options: RequestOptions | None = None
@@ -196,6 +225,7 @@ class Journeys:
             ),
             body=body or {},
             options=options,
+            idempotent=True,
         )
 
     def connections(
@@ -220,6 +250,7 @@ class Journeys:
             ),
             body={},
             options=options,
+            idempotent=True,
         )
 
         return {**result, "url": urljoin(self._client.base_url, result["url"])}
@@ -239,7 +270,7 @@ class Journeys:
                 f"/moments/{quote(stage_key, safe='')}/sender-secret"
             ),
             body={"senderSecret": sender_secret},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def preview_moment(
@@ -257,7 +288,7 @@ class Journeys:
                 f"/moments/{quote(stage_key, safe='')}/preview"
             ),
             body={"payload": payload},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def emit_event(
@@ -265,7 +296,7 @@ class Journeys:
     ) -> EventResult:
         """Emit one of your own events to every journey that listens for it."""
         return self._client.request(
-            "post", "/v1/journey-events", body=body, options=options
+            "post", "/v1/journey-events", body=body, options=options, idempotent=True
         )
 
 
@@ -294,7 +325,7 @@ class AsyncJourneys:
             "post",
             f"/v1/journey-entries/{quote(journey_id, safe='')}",
             body=body,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def list(self, options: RequestOptions | None = None) -> list[Journey]:
@@ -316,7 +347,7 @@ class AsyncJourneys:
     ) -> CreatedJourney:
         """Create a journey; the signing secret comes back once, here."""
         return await self._client.request(
-            "post", "/v1/journeys", body=body, options=options
+            "post", "/v1/journeys", body=body, options=options, idempotent=True
         )
 
     async def update(
@@ -349,7 +380,7 @@ class AsyncJourneys:
             "post",
             f"/v1/journeys/{quote(journey_id, safe='')}/webhook-secret",
             body={},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def enroll(
@@ -364,6 +395,7 @@ class AsyncJourneys:
             f"/v1/journeys/{quote(journey_id, safe='')}/enrollments",
             body=body,
             options=options,
+            idempotent=True,
         )
 
     async def list_enrollments(
@@ -379,6 +411,31 @@ class AsyncJourneys:
             query=params,
             options=options,
         )
+
+    async def iter_enrollments(
+        self,
+        journey_id: str,
+        params: ListEnrollmentsParams | None = None,
+        options: RequestOptions | None = None,
+    ) -> AsyncIterator[JourneyEnrollment]:
+        """Async cursor iterator; advance while preserving caller request options."""
+        query = {**dict(params or {}), **dict((options or {}).get("params") or {})}
+        seen: set[str] = set()
+        while True:
+            page = await self.list_enrollments(
+                journey_id, options={**(options or {}), "params": query}
+            )
+            for item in page["items"]:
+                yield item
+            cursor = page.get("nextCursor")
+            if not cursor:
+                return
+            if cursor in seen or cursor == query.get("cursor"):
+                raise WokuError(
+                    "Enrollment pagination did not advance.", code="pagination_error"
+                )
+            seen.add(cursor)
+            query = {**query, "cursor": cursor}
 
     async def get_enrollment(
         self, journey_id: str, enrollment_id: str, options: RequestOptions | None = None
@@ -409,6 +466,7 @@ class AsyncJourneys:
             ),
             body=body or {},
             options=options,
+            idempotent=True,
         )
 
     async def connections(
@@ -433,6 +491,7 @@ class AsyncJourneys:
             ),
             body={},
             options=options,
+            idempotent=True,
         )
 
         return {**result, "url": urljoin(self._client.base_url, result["url"])}
@@ -452,7 +511,7 @@ class AsyncJourneys:
                 f"/moments/{quote(stage_key, safe='')}/sender-secret"
             ),
             body={"senderSecret": sender_secret},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def preview_moment(
@@ -470,7 +529,7 @@ class AsyncJourneys:
                 f"/moments/{quote(stage_key, safe='')}/preview"
             ),
             body={"payload": payload},
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def emit_event(
@@ -478,5 +537,5 @@ class AsyncJourneys:
     ) -> EventResult:
         """Emit one of your own events to every journey that listens for it."""
         return await self._client.request(
-            "post", "/v1/journey-events", body=body, options=options
+            "post", "/v1/journey-events", body=body, options=options, idempotent=True
         )

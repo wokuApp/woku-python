@@ -12,7 +12,7 @@ Official **server-side** SDK for the [Woku](https://woku.app) management API.
 
 ## Why
 
-Manage your entire Woku account from your backend with one typed client:
+Manage supported woku resources from your backend with one typed client:
 trackers, VoC tools (NPS/CSAT/CES), wokus, forms, flows, action plans,
 support tickets, delivery tracking and survey sends over the public `/v1` API.
 
@@ -20,9 +20,9 @@ support tickets, delivery tracking and survey sends over the public `/v1` API.
 - **Typed** request bodies (Pydantic v2 models generated from the OpenAPI spec)
   and response shapes.
 - **Automatic retries** with full-jitter backoff and `Retry-After` support.
-- **Idempotent creates**: creates carry an auto-generated `Idempotency-Key`, so
-  a retry after a blip never creates twice. Action calls (`send`, `test`,
-  `reply`) are never silently replayed.
+- **Protected writes**: tracker/VoC definitions, invitations and five journey operations use
+  a stable idempotency key for retries. Other writes and uploads are
+  attempted once, even when a caller provides a key. See the retry policy below.
 - **Auto-paginated** lists: `for ticket in woku.tickets.list(): ...`.
 - **Typed errors** with the server `request_id` for support.
 
@@ -95,7 +95,7 @@ CLI agents can upload a local image or MP4 with multipart to
 `POST /v1/woku-media` using the company key. Its `fileId` can be used as
 `toolSpec.fileId` in a journey Woku moment or with the MCP `create_woku` tool.
 The generated models include `WokuMediaUploadResultDto`; this Python client
-does not yet wrap the binary upload endpoint.
+provides media.upload for that endpoint.
 The endpoint returns `400` for invalid media and `413` for multipart requests
 over 25 MB.
 
@@ -103,38 +103,55 @@ over 25 MB.
 import httpx
 
 DAY = 86_400_000
-sequence = {"attemptOffsetsMs": [0], "deadlineMs": 3 * DAY, "cooldownAfterResponseMs": 0}
-journey = woku.journeys.create({
-    "name": "Purchase and delivery",
-    "authoringVersion": 2,
-    "startMode": "webhook",
-    "recipients": {
-        "ticketsEnabled": True,
-        "plansEnabled": True,
-        "ticketEmails": ["support@example.com"],
-        "planMembers": [
-            {"userId": "507f1f77bcf86cd799439011", "role": "admin"},
-            {"userId": "507f1f77bcf86cd799439012", "role": "assignee"},
+sequence = {
+    "attemptOffsetsMs": [0],
+    "deadlineMs": 3 * DAY,
+    "cooldownAfterResponseMs": 0,
+}
+journey = woku.journeys.create(
+    {
+        "name": "Purchase and delivery",
+        "authoringVersion": 2,
+        "startMode": "webhook",
+        "recipients": {
+            "ticketsEnabled": True,
+            "plansEnabled": True,
+            "ticketEmails": ["support@example.com"],
+            "planMembers": [
+                {"userId": "507f1f77bcf86cd799439011", "role": "admin"},
+                {"userId": "507f1f77bcf86cd799439012", "role": "assignee"},
+            ],
+        },
+        "moments": [
+            {
+                "key": "sale",
+                "name": "Purchase",
+                "tool": "csat",
+                "enabled": True,
+                "channel": "email",
+                "trigger": {"type": "webhook"},
+                "webhook": {"verification": {"mode": "url_token"}},
+                "toolSpec": {"subject": {"es": "tu compra", "en": "your purchase"}},
+                "sequence": sequence,
+            },
+            {
+                "key": "delivery",
+                "name": "Delivery",
+                "tool": "ces",
+                "enabled": True,
+                "channel": "email",
+                "trigger": {"type": "webhook"},
+                "webhook": {"verification": {"mode": "url_token"}},
+                "fallbackFromStage": "sale",
+                "fallbackAfterMs": 5 * DAY,
+                "toolSpec": {
+                    "subject": {"es": "recibir tu pedido", "en": "receiving your order"}
+                },
+                "sequence": sequence,
+            },
         ],
-    },
-    "moments": [
-        {
-            "key": "sale", "name": "Purchase", "tool": "csat", "enabled": True,
-            "channel": "email", "trigger": {"type": "webhook"},
-            "webhook": {"verification": {"mode": "url_token"}},
-            "toolSpec": {"subject": {"es": "tu compra", "en": "your purchase"}},
-            "sequence": sequence,
-        },
-        {
-            "key": "delivery", "name": "Delivery", "tool": "ces", "enabled": True,
-            "channel": "email", "trigger": {"type": "webhook"},
-            "webhook": {"verification": {"mode": "url_token"}},
-            "fallbackFromStage": "sale", "fallbackAfterMs": 5 * DAY,
-            "toolSpec": {"subject": {"es": "recibir tu pedido", "en": "receiving your order"}},
-            "sequence": sequence,
-        },
-    ],
-})
+    }
+)
 
 # Generate once and securely store each URL in its sending system.
 # Generating again replaces the previous moment credential.
@@ -143,23 +160,41 @@ delivery = woku.journeys.mint_moment_url(journey["id"], "delivery")
 woku.journeys.update(journey["id"], {"enabled": True})
 
 # Different systems share the same purchase reference.
-httpx.post(sale["url"], headers={"X-Woku-Event-Id": "crm-order-123"}, json={
-    "subjectKey": "order-123", "contact": {"email": "customer@example.com"},
-}).raise_for_status()
-httpx.post(delivery["url"], headers={"X-Woku-Event-Id": "delivery-order-123"}, json={
-    "subjectKey": "order-123",
-}).raise_for_status()
+httpx.post(
+    sale["url"],
+    headers={"X-Woku-Event-Id": "crm-order-123"},
+    json={
+        "subjectKey": "order-123",
+        "contact": {"email": "customer@example.com"},
+    },
+).raise_for_status()
+httpx.post(
+    delivery["url"],
+    headers={"X-Woku-Event-Id": "delivery-order-123"},
+    json={
+        "subjectKey": "order-123",
+    },
+).raise_for_status()
 
 page = woku.journeys.list_enrollments(journey["id"], {"limit": 20})
-case = next((
-    item for item in page["items"]
-    if item["subjectKey"] == "order-123"
-    and item.get("lifecycle") in ("pending", "running")
-), None)
+case = next(
+    (
+        item
+        for item in page["items"]
+        if item["subjectKey"] == "order-123"
+        and item.get("lifecycle") in ("pending", "running")
+    ),
+    None,
+)
 if case:
-    woku.journeys.stop_enrollment(journey["id"], case["id"], {
-        "reason": "Customer requested no further evaluations",
-    }, {"idempotency_key": f"stop-{case['id']}"})
+    woku.journeys.stop_enrollment(
+        journey["id"],
+        case["id"],
+        {
+            "reason": "Customer requested no further evaluations",
+        },
+        {"idempotency_key": f"stop-{case['id']}"},
+    )
 ```
 
 `get_enrollment` reads a specific case. Enrollment lists return `{items, nextCursor}`;
@@ -278,3 +313,42 @@ answer. Sync and async journey dictionaries use structural contracts generated
 in `woku._generated.journeys`; Pydantic body models remain in
 `woku._generated.models`. Runtime responses remain dictionaries. Generation
 covers advanced moments and response shapes, including resolved preview content.
+
+## Journey SDK v4
+
+```python
+with open("delivery.jpg", "rb") as image:
+    media = woku.media.upload(image, filename="delivery.jpg", content_type="image/jpeg")
+for case in woku.journeys.iter_enrollments(journey_id):
+    print(case["id"])
+```
+
+AsyncWoku exposes the same methods: await media.upload and use async for with
+journeys.iter_enrollments. The caller owns file handles. HTTPX supplies the
+multipart boundary. Uploads are sent once even if an idempotency key is supplied;
+413 maps to PayloadTooLargeError with request_id.
+
+Cursor and numeric pagination preserve initial params while advancing subsequent
+pages; repeated cursors/pages raise WokuError with code pagination_error.
+Generated journey dictionaries and the media result use the server OpenAPI.
+
+Automatic write retries are restricted to supported operations: tracker definitions,
+VoC tools, invitations, and journey create/enroll/stop/mint URL/event operations.
+Unsupported writes (including uploads, Woku creation, groups/tasks and secret
+rotations) are sent once. idempotency_key on an API error identifies the original
+operation; inspect uncertain results before retrying with a different key.
+Retry-After is honored instead of shortened to the jitter cap.
+
+base_url controls the origin even with a custom http_client. Absolute API paths
+are rejected and ids are encoded individually. The secret key remains server-side;
+webhook calls use a separate transport and never forward that key. Tickets and
+Data Studio are Corporate capabilities, while API access is available on all plans.
+
+See [the four-moment example](./examples/journey_hybrid.py). It uploads your JPEG,
+creates a disabled journey and previews conditional webhook content without
+starting evaluations. Run it with WOKU_API_KEY and an explicit staging base_url
+when importing its function. Do not forward that management key to a webhook.
+
+Regenerate types with `bash scripts/generate_models.sh`.
+`bash scripts/check_generated.sh` checks the vendored contract without changing
+checked-in files or requiring a sibling server repository.

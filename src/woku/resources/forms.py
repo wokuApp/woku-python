@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -32,7 +33,9 @@ class Forms:
         return self._client.get_page("/v1/forms", params, options)
 
     def get(self, form_id: str, options: RequestOptions | None = None) -> WokuRecord:
-        return self._client.request("get", f"/v1/forms/{form_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/forms/{quote(form_id, safe='')}", options=options
+        )
 
     def list_responses(
         self,
@@ -41,7 +44,9 @@ class Forms:
         options: RequestOptions | None = None,
     ) -> SyncPage[WokuRecord]:
         """List the responses of a form (paginated)."""
-        return self._client.get_page(f"/v1/forms/{form_id}/responses", params, options)
+        return self._client.get_page(
+            f"/v1/forms/{quote(form_id, safe='')}/responses", params, options
+        )
 
     def send_invitations(
         self,
@@ -52,7 +57,7 @@ class Forms:
         """Send a form by email or WhatsApp (idempotent)."""
         return self._client.request(
             "post",
-            f"/v1/forms/{form_id}/invitations",
+            f"/v1/forms/{quote(form_id, safe='')}/invitations",
             body=body,
             idempotent=True,
             options=options,
@@ -76,7 +81,7 @@ class AsyncForms:
         self, form_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/forms/{form_id}", options=options
+            "get", f"/v1/forms/{quote(form_id, safe='')}", options=options
         )
 
     async def list_responses(
@@ -87,7 +92,7 @@ class AsyncForms:
     ) -> AsyncPage[WokuRecord]:
         """List the responses of a form (paginated)."""
         return await self._client.get_page(
-            f"/v1/forms/{form_id}/responses", params, options
+            f"/v1/forms/{quote(form_id, safe='')}/responses", params, options
         )
 
     async def send_invitations(
@@ -99,7 +104,7 @@ class AsyncForms:
         """Send a form by email or WhatsApp (idempotent)."""
         return await self._client.request(
             "post",
-            f"/v1/forms/{form_id}/invitations",
+            f"/v1/forms/{quote(form_id, safe='')}/invitations",
             body=body,
             idempotent=True,
             options=options,

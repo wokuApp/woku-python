@@ -3384,7 +3384,14 @@
         },
         "responses": {
           "201": {
-            "description": "Capture accepted"
+            "description": "Capture accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1CaptureResultDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Validation error",
@@ -3398,6 +3405,9 @@
           }
         },
         "security": [
+          {
+            "PublishableKey": []
+          },
           {
             "bearer": []
           }
@@ -6228,11 +6238,58 @@
       },
       "CreateWokuApiDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "The subject evaluated by this Woku"
+          },
+          "fileUrl": {
+            "type": "string",
+            "description": "Public image or MP4 URL"
+          },
+          "folderSecondaryKey": {
+            "type": "string"
+          },
+          "parentFolderSecondaryKey": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "clientPhone": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "description",
+          "fileUrl"
+        ]
       },
       "CreateWokuFormDataApiDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "The subject evaluated by this Woku"
+          },
+          "folderSecondaryKey": {
+            "type": "string"
+          },
+          "parentFolderSecondaryKey": {
+            "type": "string"
+          },
+          "clientEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "clientPhone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ]
       },
       "CreateExternalTrackerDefinitionDTO": {
         "type": "object",
@@ -6433,11 +6490,16 @@
           },
           "config": {
             "type": "object",
-            "description": "Non-secret provider config (validated per kind)."
+            "description": "Non-secret provider config (validated per kind).",
+            "additionalProperties": true
           },
           "credentials": {
             "type": "object",
-            "description": "Provider credentials (write-only, encrypted)."
+            "description": "Provider credentials (write-only, encrypted).",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "writeOnly": true
           },
           "aiContext": {
             "type": "string",
@@ -6477,11 +6539,16 @@
             "maxLength": 120
           },
           "config": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": true
           },
           "credentials": {
             "type": "object",
-            "description": "Present = credential rotation."
+            "description": "Present = credential rotation.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "writeOnly": true
           },
           "aiContext": {
             "type": "string",
@@ -7037,6 +7104,10 @@
             "description": "Respondent email. Omit for an anonymous capture.",
             "format": "email"
           },
+          "clientPhone": {
+            "type": "string",
+            "description": "Respondent phone when email is not supplied."
+          },
           "anonymous": {
             "type": "boolean",
             "description": "Whether the submission is anonymous (no client email stored)."
@@ -7274,6 +7345,38 @@
         },
         "required": [
           "kind"
+        ]
+      },
+      "V1CaptureResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Client submission id, echoed without replacing the server id."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "nps",
+              "csat",
+              "ces"
+            ]
+          },
+          "remoteId": {
+            "type": "string",
+            "description": "Server id of the created feedback resource."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "status"
         ]
       },
       "V1CreateNpsInvitationsBodyDto": {
@@ -7520,6 +7623,7 @@
           "answers": {
             "type": "object",
             "description": "Answers keyed by field id",
+            "additionalProperties": true,
             "example": {
               "field-uuid-1": "John Doe",
               "field-uuid-2": 5
@@ -9282,7 +9386,8 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Anything you want kept with it"
+            "description": "Anything you want kept with it",
+            "additionalProperties": true
           }
         },
         "required": [
@@ -9332,7 +9437,8 @@
             }
           },
           "metadata": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": true
           }
         },
         "required": [

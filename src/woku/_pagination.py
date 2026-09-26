@@ -11,6 +11,8 @@ from typing import (
     TypeVar,
 )
 
+from ._exceptions import WokuError
+
 T = TypeVar("T")
 
 
@@ -75,7 +77,10 @@ class SyncPage(_BasePage[T]):
         """Fetch the next page (raise if there is none; guard with has_next_page)."""
         if not self.has_next_page():
             raise IndexError("No next page")
-        return self._fetch_page(self.page + 1)
+        next_page = self._fetch_page(self.page + 1)
+        if next_page.page <= self.page:
+            raise WokuError("Pagination did not advance.", code="pagination_error")
+        return next_page
 
     def __iter__(self) -> Iterator[T]:
         page: SyncPage[T] = self
@@ -114,7 +119,10 @@ class AsyncPage(_BasePage[T]):
         """Fetch the next page (raise if there is none; guard with has_next_page)."""
         if not self.has_next_page():
             raise IndexError("No next page")
-        return await self._fetch_page(self.page + 1)
+        next_page = await self._fetch_page(self.page + 1)
+        if next_page.page <= self.page:
+            raise WokuError("Pagination did not advance.", code="pagination_error")
+        return next_page
 
     async def __aiter__(self) -> AsyncIterator[T]:
         page: AsyncPage[T] = self

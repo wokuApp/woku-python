@@ -140,3 +140,45 @@ def test_prepared_entry_keeps_response_capability_without_enrollment() -> None:
         )
     assert entry["token"] == "jent_test"
     assert "start" not in json.loads(preparation.calls.last.request.content)
+
+
+@respx.mock
+def test_enrollment_iterator_advances_a_query_override() -> None:
+    requested: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        cursor = request.url.params.get("cursor", "")
+        requested.append(cursor)
+        return httpx.Response(
+            200,
+            json={
+                "items": [{"id": cursor}],
+                "nextCursor": None if cursor == "second" else "second",
+            },
+        )
+
+    respx.get(f"{BASE}/v1/journeys/j1/enrollments").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url=BASE) as sdk:
+        results = list(
+            sdk.journeys.iter_enrollments(
+                "j1", options={"params": {"cursor": "initial"}}
+            )
+        )
+    assert [item["id"] for item in results] == ["initial", "second"]
+    assert requested == ["initial", "second"]
+
+
+@respx.mock
+async def test_async_enrollment_iterator_rejects_a_repeated_cursor() -> None:
+    import pytest
+
+    from woku import WokuError
+
+    respx.get(f"{BASE}/v1/journeys/j1/enrollments").mock(
+        return_value=httpx.Response(200, json={"items": [], "nextCursor": "same"})
+    )
+    async with AsyncWoku(api_key="sk_test", base_url=BASE) as sdk:
+        with pytest.raises(WokuError) as error:
+            async for _ in sdk.journeys.iter_enrollments("j1"):
+                pass
+    assert error.value.code == "pagination_error"

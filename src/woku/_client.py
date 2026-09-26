@@ -6,7 +6,7 @@ import asyncio
 import time
 from collections.abc import Mapping
 from types import TracebackType
-from typing import Any
+from typing import Any, BinaryIO
 
 import httpx
 
@@ -34,6 +34,7 @@ from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
 from .resources.forms import AsyncForms, Forms
 from .resources.journeys import AsyncJourneys, Journeys
+from .resources.media import AsyncMedia, Media
 from .resources.quarantines import AsyncQuarantines, Quarantines
 from .resources.reports import AsyncReports, Reports
 from .resources.surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
@@ -112,6 +113,7 @@ class Woku(BaseClient):
         self.reports = Reports(self)
         self.company = Company(self)
         self.journeys = Journeys(self)
+        self.media = Media(self)
         self.quarantines = Quarantines(self)
 
     def request(
@@ -120,6 +122,7 @@ class Woku(BaseClient):
         path: str,
         *,
         body: Any = None,
+        files: Mapping[str, tuple[str, bytes | BinaryIO, str]] | None = None,
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
@@ -133,19 +136,29 @@ class Woku(BaseClient):
             method, idempotent, opts.get("idempotency_key")
         )
         headers = self._build_headers(method, idempotency_key, opts.get("headers"))
+        if files:
+            headers = {
+                name: value
+                for name, value in headers.items()
+                if name.lower() != "content-type"
+            }
         json_body = serialize_body(body)
         max_retries = opts.get("max_retries", self.max_retries)
         timeout = opts.get("timeout", self.timeout)
-        retryable = method.upper() == "GET" or IDEMPOTENCY_HEADER in headers
+        retryable = method.upper() == "GET" or (
+            method.upper() == "POST" and idempotent and IDEMPOTENCY_HEADER in headers
+        )
 
+        url = self._url(path)
         attempt = 0
         while True:
             try:
                 response = self._http.request(
                     method.upper(),
-                    path,
+                    url,
                     params=merged_query or None,
                     json=json_body,
+                    files=files,
                     headers=headers,
                     timeout=timeout,
                 )
@@ -154,13 +167,17 @@ class Woku(BaseClient):
                     time.sleep(self._backoff(attempt))
                     attempt += 1
                     continue
-                raise WokuTimeoutError() from exc
+                error = WokuTimeoutError()
+                error.idempotency_key = idempotency_key
+                raise error from exc
             except httpx.HTTPError as exc:
                 if retryable and attempt < max_retries:
                     time.sleep(self._backoff(attempt))
                     attempt += 1
                     continue
-                raise WokuConnectionError(str(exc) or "Network request failed") from exc
+                error = WokuConnectionError(str(exc) or "Network request failed")
+                error.idempotency_key = idempotency_key
+                raise error from exc
 
             status = response.status_code
             if 200 <= status < 300:
@@ -171,6 +188,7 @@ class Woku(BaseClient):
                 request_id_from(response.headers),
                 retry_after_from_headers(response.headers),
             )
+            api_error.idempotency_key = idempotency_key
             if retryable and attempt < max_retries and status in RETRYABLE_STATUS:
                 time.sleep(self._backoff(attempt, api_error))
                 attempt += 1
@@ -187,7 +205,17 @@ class Woku(BaseClient):
         base = dict(params or {})
 
         def fetch(page_number: int) -> SyncPage[Any]:
-            return self.get_page(path, {**base, "page": page_number}, options)
+            return self.get_page(
+                path,
+                {**base, "page": page_number},
+                {
+                    **(options or {}),
+                    "params": {
+                        **dict((options or {}).get("params") or {}),
+                        "page": page_number,
+                    },
+                },
+            )
 
         response = self.request("get", path, query=base, options=options)
         return SyncPage(_as_page_response(response), fetch)
@@ -258,6 +286,7 @@ class AsyncWoku(BaseClient):
         self.reports = AsyncReports(self)
         self.company = AsyncCompany(self)
         self.journeys = AsyncJourneys(self)
+        self.media = AsyncMedia(self)
         self.quarantines = AsyncQuarantines(self)
 
     async def request(
@@ -266,6 +295,7 @@ class AsyncWoku(BaseClient):
         path: str,
         *,
         body: Any = None,
+        files: Mapping[str, tuple[str, bytes | BinaryIO, str]] | None = None,
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
@@ -279,19 +309,29 @@ class AsyncWoku(BaseClient):
             method, idempotent, opts.get("idempotency_key")
         )
         headers = self._build_headers(method, idempotency_key, opts.get("headers"))
+        if files:
+            headers = {
+                name: value
+                for name, value in headers.items()
+                if name.lower() != "content-type"
+            }
         json_body = serialize_body(body)
         max_retries = opts.get("max_retries", self.max_retries)
         timeout = opts.get("timeout", self.timeout)
-        retryable = method.upper() == "GET" or IDEMPOTENCY_HEADER in headers
+        retryable = method.upper() == "GET" or (
+            method.upper() == "POST" and idempotent and IDEMPOTENCY_HEADER in headers
+        )
 
+        url = self._url(path)
         attempt = 0
         while True:
             try:
                 response = await self._http.request(
                     method.upper(),
-                    path,
+                    url,
                     params=merged_query or None,
                     json=json_body,
+                    files=files,
                     headers=headers,
                     timeout=timeout,
                 )
@@ -300,13 +340,17 @@ class AsyncWoku(BaseClient):
                     await asyncio.sleep(self._backoff(attempt))
                     attempt += 1
                     continue
-                raise WokuTimeoutError() from exc
+                error = WokuTimeoutError()
+                error.idempotency_key = idempotency_key
+                raise error from exc
             except httpx.HTTPError as exc:
                 if retryable and attempt < max_retries:
                     await asyncio.sleep(self._backoff(attempt))
                     attempt += 1
                     continue
-                raise WokuConnectionError(str(exc) or "Network request failed") from exc
+                error = WokuConnectionError(str(exc) or "Network request failed")
+                error.idempotency_key = idempotency_key
+                raise error from exc
 
             status = response.status_code
             if 200 <= status < 300:
@@ -317,6 +361,7 @@ class AsyncWoku(BaseClient):
                 request_id_from(response.headers),
                 retry_after_from_headers(response.headers),
             )
+            api_error.idempotency_key = idempotency_key
             if retryable and attempt < max_retries and status in RETRYABLE_STATUS:
                 await asyncio.sleep(self._backoff(attempt, api_error))
                 attempt += 1
@@ -333,7 +378,17 @@ class AsyncWoku(BaseClient):
         base = dict(params or {})
 
         async def fetch(page_number: int) -> AsyncPage[Any]:
-            return await self.get_page(path, {**base, "page": page_number}, options)
+            return await self.get_page(
+                path,
+                {**base, "page": page_number},
+                {
+                    **(options or {}),
+                    "params": {
+                        **dict((options or {}).get("params") or {}),
+                        "page": page_number,
+                    },
+                },
+            )
 
         response = await self.request("get", path, query=base, options=options)
         return AsyncPage(_as_page_response(response), fetch)

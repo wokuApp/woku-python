@@ -37,11 +37,29 @@ class ValidationErrorResponseDto(BaseModel):
 
 
 class CreateWokuApiDto(BaseModel):
-    pass
+    description: str
+    """
+    The subject evaluated by this Woku
+    """
+    fileUrl: str
+    """
+    Public image or MP4 URL
+    """
+    folderSecondaryKey: Optional[str] = None
+    parentFolderSecondaryKey: Optional[str] = None
+    clientEmail: Optional[str] = None
+    clientPhone: Optional[float] = None
 
 
 class CreateWokuFormDataApiDto(BaseModel):
-    pass
+    description: str
+    """
+    The subject evaluated by this Woku
+    """
+    folderSecondaryKey: Optional[str] = None
+    parentFolderSecondaryKey: Optional[str] = None
+    clientEmail: Optional[str] = None
+    clientPhone: Optional[str] = None
 
 
 class CreateExternalTrackerDefinitionDTO(BaseModel):
@@ -178,7 +196,7 @@ class V1CreateTicketDestinationDto(BaseModel):
     """
     Non-secret provider config (validated per kind).
     """
-    credentials: dict[str, Any]
+    credentials: dict[str, str]
     """
     Provider credentials (write-only, encrypted).
     """
@@ -194,7 +212,7 @@ class V1CreateTicketDestinationDto(BaseModel):
 class V1UpdateTicketDestinationDto(BaseModel):
     name: Annotated[Optional[str], Field(max_length=120)] = None
     config: Optional[dict[str, Any]] = None
-    credentials: Optional[dict[str, Any]] = None
+    credentials: Optional[dict[str, str]] = None
     """
     Present = credential rotation.
     """
@@ -548,6 +566,10 @@ class V1CreateNpsBodyDto(BaseModel):
     """
     Respondent email. Omit for an anonymous capture.
     """
+    clientPhone: Optional[str] = None
+    """
+    Respondent phone when email is not supplied.
+    """
     anonymous: Optional[bool] = None
     """
     Whether the submission is anonymous (no client email stored).
@@ -729,6 +751,23 @@ class V1CaptureBodyDto(BaseModel):
     """
     audio: Optional[V1CaptureAudioDto] = None
     respondent: Optional[V1CaptureRespondentDto] = None
+
+
+class Status1(Enum):
+    accepted = 'accepted'
+
+
+class V1CaptureResultDto(BaseModel):
+    id: Optional[str] = None
+    """
+    Client submission id, echoed without replacing the server id.
+    """
+    kind: Kind2
+    remoteId: Optional[str] = None
+    """
+    Server id of the created feedback resource.
+    """
+    status: Status1
 
 
 class Channel(Enum):
@@ -1172,7 +1211,7 @@ class V1JourneyPendingMomentDto(BaseModel):
     name: Optional[str] = None
 
 
-class Status1(Enum):
+class Status2(Enum):
     pending = 'pending'
     active = 'active'
     sent = 'sent'
@@ -1206,7 +1245,7 @@ class ActivationSource(Enum):
 class V1JourneyMomentProgressDto(BaseModel):
     key: str
     name: str
-    status: Status1
+    status: Status2
     toolId: Optional[str] = None
     toolType: Optional[ToolType] = None
     toolScope: Optional[ToolScope] = None

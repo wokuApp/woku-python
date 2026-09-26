@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -50,7 +51,9 @@ class Nps:
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         """Get one NPS response."""
-        return self._client.request("get", f"/v1/nps/{response_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/nps/{quote(response_id, safe='')}", options=options
+        )
 
 
 class Csat:
@@ -78,7 +81,9 @@ class Csat:
     def get_response(
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
-        return self._client.request("get", f"/v1/csat/{response_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/csat/{quote(response_id, safe='')}", options=options
+        )
 
 
 class Ces:
@@ -106,7 +111,9 @@ class Ces:
     def get_response(
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
-        return self._client.request("get", f"/v1/ces/{response_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/ces/{quote(response_id, safe='')}", options=options
+        )
 
 
 class AsyncNps:
@@ -135,7 +142,7 @@ class AsyncNps:
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/nps/{response_id}", options=options
+            "get", f"/v1/nps/{quote(response_id, safe='')}", options=options
         )
 
 
@@ -165,7 +172,7 @@ class AsyncCsat:
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/csat/{response_id}", options=options
+            "get", f"/v1/csat/{quote(response_id, safe='')}", options=options
         )
 
 
@@ -195,5 +202,5 @@ class AsyncCes:
         self, response_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/ces/{response_id}", options=options
+            "get", f"/v1/ces/{quote(response_id, safe='')}", options=options
         )

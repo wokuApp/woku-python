@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "woku"
 dynamic = ["version"]
-description = "Official server-side SDK for the Woku management API (trackers, VoC tools, action plans, tickets, delivery and capture over /v1)."
+description = "Official server-side SDK for woku API v1, customer journeys, media, feedback and actions."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -63,6 +63,7 @@ include = [
     "src/woku",
     "openapi",
     "scripts",
+    "examples",
     "README.md",
     "LICENSE",
 ]

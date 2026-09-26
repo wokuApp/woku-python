@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import builtins
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -62,7 +63,9 @@ class Tickets:
         )
 
     def get(self, ticket_id: str, options: RequestOptions | None = None) -> Ticket:
-        return self._client.request("get", f"/v1/tickets/{ticket_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/tickets/{quote(ticket_id, safe='')}", options=options
+        )
 
     def update(
         self,
@@ -71,7 +74,10 @@ class Tickets:
         options: RequestOptions | None = None,
     ) -> Ticket:
         return self._client.request(
-            "patch", f"/v1/tickets/{ticket_id}", body=body, options=options
+            "patch",
+            f"/v1/tickets/{quote(ticket_id, safe='')}",
+            body=body,
+            options=options,
         )
 
 
@@ -88,7 +94,9 @@ class TicketDestinations:
         self, destination_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return self._client.request(
-            "get", f"/v1/ticket-destinations/{destination_id}", options=options
+            "get",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
+            options=options,
         )
 
     def create(
@@ -100,8 +108,7 @@ class TicketDestinations:
             "post",
             "/v1/ticket-destinations",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def update(
@@ -112,7 +119,7 @@ class TicketDestinations:
     ) -> WokuRecord:
         return self._client.request(
             "patch",
-            f"/v1/ticket-destinations/{destination_id}",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
             body=body,
             options=options,
         )
@@ -121,7 +128,9 @@ class TicketDestinations:
         self, destination_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return self._client.request(
-            "delete", f"/v1/ticket-destinations/{destination_id}", options=options
+            "delete",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
+            options=options,
         )
 
     def test(
@@ -134,7 +143,7 @@ class TicketDestinations:
         """
         return self._client.request(
             "post",
-            f"/v1/ticket-destinations/{destination_id}/test",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}/test",
             body={"confirm": True},
             options=options,
         )
@@ -167,7 +176,7 @@ class AsyncTickets:
         self, ticket_id: str, options: RequestOptions | None = None
     ) -> Ticket:
         return await self._client.request(
-            "get", f"/v1/tickets/{ticket_id}", options=options
+            "get", f"/v1/tickets/{quote(ticket_id, safe='')}", options=options
         )
 
     async def update(
@@ -177,7 +186,10 @@ class AsyncTickets:
         options: RequestOptions | None = None,
     ) -> Ticket:
         return await self._client.request(
-            "patch", f"/v1/tickets/{ticket_id}", body=body, options=options
+            "patch",
+            f"/v1/tickets/{quote(ticket_id, safe='')}",
+            body=body,
+            options=options,
         )
 
 
@@ -198,7 +210,9 @@ class AsyncTicketDestinations:
         self, destination_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/ticket-destinations/{destination_id}", options=options
+            "get",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
+            options=options,
         )
 
     async def create(
@@ -210,8 +224,7 @@ class AsyncTicketDestinations:
             "post",
             "/v1/ticket-destinations",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def update(
@@ -222,7 +235,7 @@ class AsyncTicketDestinations:
     ) -> WokuRecord:
         return await self._client.request(
             "patch",
-            f"/v1/ticket-destinations/{destination_id}",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
             body=body,
             options=options,
         )
@@ -231,7 +244,9 @@ class AsyncTicketDestinations:
         self, destination_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "delete", f"/v1/ticket-destinations/{destination_id}", options=options
+            "delete",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}",
+            options=options,
         )
 
     async def test(
@@ -240,7 +255,7 @@ class AsyncTicketDestinations:
         """Send a real connectivity test to a saved destination (``confirm`` sent)."""
         return await self._client.request(
             "post",
-            f"/v1/ticket-destinations/{destination_id}/test",
+            f"/v1/ticket-destinations/{quote(destination_id, safe='')}/test",
             body={"confirm": True},
             options=options,
         )

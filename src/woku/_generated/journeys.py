@@ -8,6 +8,37 @@ from typing import Any, Literal, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 
+class WokuMediaUploadResultDto(TypedDict):
+    fileId: str
+    filename: str
+    type: Literal['image', 'video']
+
+
+class ValidationErrorResponseDto(TypedDict):
+    statusCode: float
+    message: list[str]
+    error: str
+
+
+class V1CaptureAudioDto(TypedDict):
+    uri: NotRequired[str]
+    mimeType: NotRequired[str]
+    durationMs: NotRequired[float]
+
+
+class V1CaptureRespondentDto(TypedDict):
+    email: NotRequired[str]
+    phone: NotRequired[str]
+    externalId: NotRequired[str]
+
+
+class V1CaptureResultDto(TypedDict):
+    id: NotRequired[str]
+    kind: Literal['woku', 'nps', 'csat', 'ces']
+    remoteId: NotRequired[str]
+    status: Literal['accepted']
+
+
 class Next(TypedDict):
     stageKey: str
     name: str
@@ -38,12 +69,6 @@ class V1JourneyMomentProgressDto(TypedDict):
         Literal['operator', 'response', 'webhook', 'timer', 'fallback']
     ]
     hookReceivedAt: NotRequired[str]
-
-
-class ValidationErrorResponseDto(TypedDict):
-    statusCode: float
-    message: list[str]
-    error: str
 
 
 class V1JourneyTrackerDto(TypedDict):
@@ -206,6 +231,19 @@ class PreparedJourneyEntryDto(TypedDict):
     toolId: str
     token: str
     subjectKey: str
+
+
+class V1CaptureBodyDto(TypedDict):
+    dispatchToken: NotRequired[str]
+    id: NotRequired[str]
+    kind: Literal['woku', 'nps', 'csat', 'ces']
+    language: NotRequired[Literal['es', 'en']]
+    targetId: NotRequired[str]
+    rating: NotRequired[float]
+    score: NotRequired[float]
+    comment: NotRequired[str]
+    audio: NotRequired[V1CaptureAudioDto]
+    respondent: NotRequired[V1CaptureRespondentDto]
 
 
 class V1JourneyParticipationDto(TypedDict):
