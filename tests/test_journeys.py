@@ -114,3 +114,29 @@ def test_generated_journey_body_preserves_dynamic_content_and_schema_alias() -> 
     )
     serialized = model.model_dump(mode="json", by_alias=True, exclude_none=True)
     assert serialized["moments"][0] == moment
+
+
+@respx.mock
+def test_prepared_entry_keeps_response_capability_without_enrollment() -> None:
+    respx.get(f"{BASE}/v1/journey-entries/j1").mock(
+        return_value=httpx.Response(
+            200, json={"tool": "woku", "requiresReference": True}
+        )
+    )
+    preparation = respx.post(f"{BASE}/v1/journey-entries/j1").mock(
+        return_value=httpx.Response(
+            201,
+            json={"toolId": "t1", "token": "jent_test", "tool": "woku"},
+        )
+    )
+    with Woku(api_key="sk_test", base_url=BASE) as sdk:
+        assert sdk.journeys.entry_info("j1")["requiresReference"] is True
+        entry = sdk.journeys.prepare_entry(
+            "j1",
+            {
+                "requestId": "07c19e38-5cf4-4ef5-9e26-88802610c510",
+                "email": "client@example.com",
+            },
+        )
+    assert entry["token"] == "jent_test"
+    assert "start" not in json.loads(preparation.calls.last.request.content)

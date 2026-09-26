@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -400,6 +400,10 @@ class MoveWokuBodyDTO(BaseModel):
 
 
 class V1CreateTextnoteBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     qualification: Annotated[float, Field(examples=[5])]
     """
     Star rating (1-5)
@@ -459,6 +463,10 @@ class Anonymous(Enum):
 
 
 class V1CreateVoicemailBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     file: bytes
     """
     Audio file for the voicemail
@@ -690,6 +698,10 @@ class Language1(Enum):
 
 
 class V1CaptureBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     id: Optional[str] = None
     """
     Client-generated idempotency id
@@ -1332,7 +1344,7 @@ class V1JourneyPreviewContentDto(BaseModel):
     trackers: Optional[list[V1JourneyTrackerDto]] = None
     question: Optional[V1JourneyLocaleDto] = None
     folder: Optional[V1JourneyPreviewFolderDto] = None
-    clientFields: dict[str, Any]
+    clientFields: dict[str, Union[str, float, bool]]
     """
     Resolved additional client fields.
     """
@@ -1732,6 +1744,10 @@ class StartMode1(Enum):
 
 
 class V1CreateJourneyBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
     authoringVersion: Optional[AuthoringVersion1] = None
     """
     Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
@@ -1802,6 +1818,10 @@ class StartMode3(Enum):
 
 
 class V1UpdateJourneyBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
     authoringVersion: Optional[AuthoringVersion3] = None
     """
     Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
@@ -1824,6 +1844,10 @@ class V1JourneySecretResponseDto(BaseModel):
 
 
 class V1EnrollSubjectBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
     subjectKey: Annotated[str, Field(examples=['cliente-123'])]
     """
     Your own key for who is enrolled: a customer id, an order, a ticket.
@@ -1845,6 +1869,10 @@ class V1JourneyEnrollmentResponseDto(BaseModel):
 
 
 class V1EmitJourneyEventBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
     event: Annotated[str, Field(examples=['crm.deal.won'])]
     subjectKey: Annotated[str, Field(examples=['cliente-123'])]
     contact: Optional[V1JourneyContactDto] = None
@@ -1856,6 +1884,16 @@ class V1JourneyEventResponseDto(BaseModel):
     journeys: float
 
 
+class JourneyEntryInfoDto(BaseModel):
+    name: Optional[str] = None
+    momentName: Optional[str] = None
+    tool: Tool
+    requiresReference: bool
+    """
+    A case reference is required when later moments start on webhooks.
+    """
+
+
 class PrepareJourneyEntryDto(BaseModel):
     requestId: UUID
     """
@@ -1864,3 +1902,14 @@ class PrepareJourneyEntryDto(BaseModel):
     email: Optional[str] = None
     phone: Annotated[Optional[str], Field(examples=['56912345678'])] = None
     reference: Annotated[Optional[str], Field(max_length=200)] = None
+
+
+class PreparedJourneyEntryDto(BaseModel):
+    companyId: str
+    tool: Tool
+    toolId: str
+    token: str
+    """
+    Opaque response capability for this prepared first tool. Keep private; preparing alone does not start the journey.
+    """
+    subjectKey: str

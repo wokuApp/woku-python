@@ -5522,6 +5522,9 @@
           },
           "422": {
             "description": "Idempotency key reused for a different operation"
+          },
+          "503": {
+            "description": "Secure webhook ingress is not configured"
           }
         },
         "security": [
@@ -6082,7 +6085,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JourneyEntryInfoDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid contact, case reference or request ID"
+          },
+          "404": {
+            "description": "This evaluation is not available"
           }
         },
         "security": [],
@@ -6116,7 +6132,26 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedJourneyEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid contact, case reference or request ID"
+          },
+          "404": {
+            "description": "This evaluation is not available"
+          },
+          "409": {
+            "description": "Customer or case already has an active evaluation"
+          },
+          "503": {
+            "description": "Preparation is still in progress; retry with the same requestId"
           }
         },
         "security": [],
@@ -6816,6 +6851,11 @@
       "V1CreateTextnoteBodyDto": {
         "type": "object",
         "properties": {
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
+            "maxLength": 64
+          },
           "qualification": {
             "type": "number",
             "description": "Star rating (1-5)",
@@ -6852,6 +6892,11 @@
       "V1CreateVoicemailBodyDto": {
         "type": "object",
         "properties": {
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
+            "maxLength": 64
+          },
           "file": {
             "type": "string",
             "description": "Audio file for the voicemail",
@@ -7174,6 +7219,11 @@
       "V1CaptureBodyDto": {
         "type": "object",
         "properties": {
+          "dispatchToken": {
+            "type": "string",
+            "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
+            "maxLength": 64
+          },
           "id": {
             "type": "string",
             "description": "Client-generated idempotency id"
@@ -8284,7 +8334,19 @@
           },
           "clientFields": {
             "type": "object",
-            "additionalProperties": true,
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
             "description": "Resolved additional client fields."
           }
         },
@@ -9021,6 +9083,12 @@
       "V1CreateJourneyBodyDto": {
         "type": "object",
         "properties": {
+          "authHeader": {
+            "type": "string",
+            "deprecated": true,
+            "writeOnly": true,
+            "description": "Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands."
+          },
           "authoringVersion": {
             "type": "number",
             "enum": [
@@ -9131,6 +9199,12 @@
       "V1UpdateJourneyBodyDto": {
         "type": "object",
         "properties": {
+          "authHeader": {
+            "type": "string",
+            "deprecated": true,
+            "writeOnly": true,
+            "description": "Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands."
+          },
           "authoringVersion": {
             "type": "number",
             "enum": [
@@ -9181,6 +9255,12 @@
       "V1EnrollSubjectBodyDto": {
         "type": "object",
         "properties": {
+          "authHeader": {
+            "type": "string",
+            "deprecated": true,
+            "writeOnly": true,
+            "description": "Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands."
+          },
           "subjectKey": {
             "type": "string",
             "description": "Your own key for who is enrolled: a customer id, an order, a ticket.",
@@ -9228,6 +9308,12 @@
       "V1EmitJourneyEventBodyDto": {
         "type": "object",
         "properties": {
+          "authHeader": {
+            "type": "string",
+            "deprecated": true,
+            "writeOnly": true,
+            "description": "Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands."
+          },
           "event": {
             "type": "string",
             "example": "crm.deal.won"
@@ -9265,6 +9351,34 @@
           "journeys"
         ]
       },
+      "JourneyEntryInfoDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "momentName": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "csat",
+              "ces",
+              "nps"
+            ]
+          },
+          "requiresReference": {
+            "type": "boolean",
+            "description": "A case reference is required when later moments start on webhooks."
+          }
+        },
+        "required": [
+          "tool",
+          "requiresReference"
+        ]
+      },
       "PrepareJourneyEntryDto": {
         "type": "object",
         "properties": {
@@ -9288,6 +9402,40 @@
         },
         "required": [
           "requestId"
+        ]
+      },
+      "PreparedJourneyEntryDto": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "csat",
+              "ces",
+              "nps"
+            ]
+          },
+          "toolId": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "Opaque response capability for this prepared first tool. Keep private; preparing alone does not start the journey."
+          },
+          "subjectKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyId",
+          "tool",
+          "toolId",
+          "token",
+          "subjectKey"
         ]
       }
     }

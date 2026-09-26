@@ -35,6 +35,7 @@ classifiers = [
 dependencies = [
     "httpx>=0.24",
     "pydantic>=2",
+    "typing-extensions>=4.4",
 ]
 
 [project.urls]

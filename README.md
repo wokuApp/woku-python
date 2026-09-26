@@ -271,3 +271,10 @@ paths, folders and trackers. HTTP uses `sequence`; MCP uses `cadence`. The saved
 preview returns `200` with resolved content and sends nothing. Unknown moment
 fields are rejected. The legacy journey-wide `webhookSecret` is separate from
 per-moment URL tokens and sender HMAC secrets.
+
+`journeys.entry_info` and `journeys.prepare_entry` expose customer entry without
+starting an evaluation. Pass its token as `dispatchToken` with the first saved
+answer. Sync and async journey dictionaries use structural contracts generated
+in `woku._generated.journeys`; Pydantic body models remain in
+`woku._generated.models`. Runtime responses remain dictionaries. Generation
+covers advanced moments and response shapes, including resolved preview content.

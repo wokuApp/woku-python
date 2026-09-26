@@ -6,40 +6,43 @@ or share one within that same moment, and set them off by hand or from your own 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote, urljoin
 
+from pydantic import BaseModel
+
 from .._options import RequestOptions
-from ..models import WokuRecord
 
 if TYPE_CHECKING:
     from .._client import AsyncWoku, Woku
 
 
-class JourneyPlanMember(TypedDict):
-    userId: str
-    role: Literal["admin", "assignee"]
+# Structural dictionary contracts are generated from the same OpenAPI as the
+# Pydantic request models. Runtime responses remain ordinary dictionaries.
+from .._generated import journeys as _contracts
 
-
-class _RequiredJourneyRecipients(TypedDict):
-    ticketEmails: list[str]
-    planMembers: list[JourneyPlanMember]
-
-
-class JourneyRecipients(_RequiredJourneyRecipients, total=False):
-    ticketsEnabled: bool
-    plansEnabled: bool
-
-
-class JourneyInput(TypedDict, total=False):
-    """V2 supports operator, first-answer and webhook initiation."""
-
-    name: str
-    enabled: bool
-    authoringVersion: Literal[1, 2]
-    startMode: Literal["operator", "response", "webhook"]
-    recipients: JourneyRecipients
-    moments: list[dict[str, Any]]
+Journey = _contracts.V1JourneyResponseDto
+CreatedJourney = _contracts.V1CreatedJourneyResponseDto
+JourneyEnrollment = _contracts.V1JourneyParticipationDto
+JourneyEnrollmentPage = _contracts.V1JourneyParticipationPageDto
+JourneyConnection = _contracts.V1JourneyConnectionDto
+JourneyMomentUrl = _contracts.V1JourneyMomentUrlDto
+JourneyMomentPreview = _contracts.V1JourneyPreviewResponseDto
+JourneyMoment = _contracts.V1JourneyMomentDto
+JourneyPlanMember = _contracts.JourneyPlanMemberDto
+JourneyRecipients = _contracts.JourneyRecipientsDto
+JourneyInput = _contracts.V1UpdateJourneyBodyDto
+CreateJourneyInput = _contracts.V1CreateJourneyBodyDto
+JourneyContact = _contracts.V1JourneyContactDto
+JourneyTracker = _contracts.V1JourneyTrackerDto
+EnrollParams = _contracts.V1EnrollSubjectBodyDto
+JourneyEventParams = _contracts.V1EmitJourneyEventBodyDto
+EnrollmentResult = _contracts.V1JourneyEnrollmentResponseDto
+EventResult = _contracts.V1JourneyEventResponseDto
+JourneySecret = _contracts.V1JourneySecretResponseDto
+JourneyEntryInfo = _contracts.JourneyEntryInfoDto
+PrepareJourneyEntryInput = _contracts.PrepareJourneyEntryDto
+PreparedJourneyEntry = _contracts.PreparedJourneyEntryDto
 
 
 class ListEnrollmentsParams(TypedDict, total=False):
@@ -51,94 +54,87 @@ class StopEnrollmentParams(TypedDict, total=False):
     reason: str
 
 
-class JourneyEnrollmentPage(TypedDict, total=False):
-    items: list[WokuRecord]
-    nextCursor: str
-
-
-class JourneyContact(TypedDict, total=False):
-    email: str
-    phone: str
-
-
-class JourneyTracker(TypedDict):
-    name: str
-    value: str
-
-
-class EnrollParams(TypedDict, total=False):
-    """Who is enrolled and how to reach them."""
-
-    subjectKey: str
-    contact: JourneyContact
-    trackers: list[JourneyTracker]
-    metadata: dict[str, Any]
-
-
-class JourneyEventParams(TypedDict, total=False):
-    """One of your own events. Names starting with ``journey.`` are reserved."""
-
-    event: str
-    subjectKey: str
-    contact: JourneyContact
-    trackers: list[JourneyTracker]
-    metadata: dict[str, Any]
-
-
 class Journeys:
     """Customer journeys: their moments, and how each one starts."""
 
     def __init__(self, client: Woku) -> None:
         self._client = client
 
-    def list(self, options: RequestOptions | None = None) -> list[WokuRecord]:
+    def entry_info(
+        self, journey_id: str, options: RequestOptions | None = None
+    ) -> JourneyEntryInfo:
+        """Read customer entry metadata without starting an evaluation."""
+        return self._client.request(
+            "get", f"/v1/journey-entries/{quote(journey_id, safe='')}", options=options
+        )
+
+    def prepare_entry(
+        self,
+        journey_id: str,
+        body: PrepareJourneyEntryInput | BaseModel,
+        options: RequestOptions | None = None,
+    ) -> PreparedJourneyEntry:
+        """Prepare a first tool; its valid saved answer confirms the start."""
+        return self._client.request(
+            "post",
+            f"/v1/journey-entries/{quote(journey_id, safe='')}",
+            body=body,
+            options=options,
+        )
+
+    def list(self, options: RequestOptions | None = None) -> list[Journey]:
         """Every journey of your company."""
         return self._client.request("get", "/v1/journeys", options=options)
 
-    def get(self, journey_id: str, options: RequestOptions | None = None) -> WokuRecord:
+    def get(self, journey_id: str, options: RequestOptions | None = None) -> Journey:
         """One journey with its moments."""
         return self._client.request(
-            "get", f"/v1/journeys/{journey_id}", options=options
+            "get", f"/v1/journeys/{quote(journey_id, safe='')}", options=options
         )
 
     def create(
-        self, body: JourneyInput | dict[str, Any], options: RequestOptions | None = None
-    ) -> WokuRecord:
+        self,
+        body: JourneyInput | dict[str, Any] | BaseModel,
+        options: RequestOptions | None = None,
+    ) -> CreatedJourney:
         """Create a journey.
 
-        The response carries ``webhookSecret`` once and only here: it is what
-        signs this journey's inbound calls, so store it now.
+        The response carries the legacy ``woku_signature`` secret once.
+        V2 URL tokens and sender HMAC secrets are separate moment credentials.
         """
         return self._client.request("post", "/v1/journeys", body=body, options=options)
 
     def update(
         self,
         journey_id: str,
-        body: JourneyInput | dict[str, Any],
+        body: JourneyInput | dict[str, Any] | BaseModel,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> Journey:
         """Rename it, switch it on or off, or replace its moments.
 
         Replacing the moments mints a new version; the enrollments already
         running keep executing the version they started with.
         """
         return self._client.request(
-            "patch", f"/v1/journeys/{journey_id}", body=body, options=options
+            "patch",
+            f"/v1/journeys/{quote(journey_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     def delete(self, journey_id: str, options: RequestOptions | None = None) -> None:
         """Delete a journey. What it already started keeps its own history."""
         return self._client.request(
-            "delete", f"/v1/journeys/{journey_id}", options=options
+            "delete", f"/v1/journeys/{quote(journey_id, safe='')}", options=options
         )
 
     def rotate_webhook_secret(
         self, journey_id: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneySecret:
         """Mint a new signing secret, keeping the previous one valid."""
         return self._client.request(
             "post",
-            f"/v1/journeys/{journey_id}/webhook-secret",
+            f"/v1/journeys/{quote(journey_id, safe='')}/webhook-secret",
             body={},
             options=options,
         )
@@ -148,11 +144,11 @@ class Journeys:
         journey_id: str,
         body: EnrollParams,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> EnrollmentResult:
         """Start the journey for one subject."""
         return self._client.request(
             "post",
-            f"/v1/journeys/{journey_id}/enrollments",
+            f"/v1/journeys/{quote(journey_id, safe='')}/enrollments",
             body=body,
             options=options,
         )
@@ -173,7 +169,7 @@ class Journeys:
 
     def get_enrollment(
         self, journey_id: str, enrollment_id: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneyEnrollment:
         """Read one case's history and next step."""
         return self._client.request(
             "get",
@@ -190,7 +186,7 @@ class Journeys:
         enrollment_id: str,
         body: StopEnrollmentParams | None = None,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> JourneyEnrollment:
         """Stop future work for one case, preserving answers and other cases."""
         return self._client.request(
             "post",
@@ -204,7 +200,7 @@ class Journeys:
 
     def connections(
         self, journey_id: str, options: RequestOptions | None = None
-    ) -> list[WokuRecord]:
+    ) -> list[JourneyConnection]:
         """Read credential readiness, not proof of a real webhook delivery."""
         return self._client.request(
             "get",
@@ -214,9 +210,9 @@ class Journeys:
 
     def mint_moment_url(
         self, journey_id: str, stage_key: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneyMomentUrl:
         """Replace this moment's credential URL and return the new URL once."""
-        result: WokuRecord = self._client.request(
+        result: JourneyMomentUrl = self._client.request(
             "post",
             (
                 f"/v1/journeys/{quote(journey_id, safe='')}"
@@ -252,7 +248,7 @@ class Journeys:
         stage_key: str,
         payload: dict[str, Any],
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> JourneyMomentPreview:
         """Interpret a sample with saved mapping without starting or sending."""
         return self._client.request(
             "post",
@@ -266,7 +262,7 @@ class Journeys:
 
     def emit_event(
         self, body: JourneyEventParams, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> EventResult:
         """Emit one of your own events to every journey that listens for it."""
         return self._client.request(
             "post", "/v1/journey-events", body=body, options=options
@@ -279,21 +275,45 @@ class AsyncJourneys:
     def __init__(self, client: AsyncWoku) -> None:
         self._client = client
 
-    async def list(self, options: RequestOptions | None = None) -> list[WokuRecord]:
+    async def entry_info(
+        self, journey_id: str, options: RequestOptions | None = None
+    ) -> JourneyEntryInfo:
+        """Read customer entry metadata without starting an evaluation."""
+        return await self._client.request(
+            "get", f"/v1/journey-entries/{quote(journey_id, safe='')}", options=options
+        )
+
+    async def prepare_entry(
+        self,
+        journey_id: str,
+        body: PrepareJourneyEntryInput | BaseModel,
+        options: RequestOptions | None = None,
+    ) -> PreparedJourneyEntry:
+        """Prepare a first tool; its valid saved answer confirms the start."""
+        return await self._client.request(
+            "post",
+            f"/v1/journey-entries/{quote(journey_id, safe='')}",
+            body=body,
+            options=options,
+        )
+
+    async def list(self, options: RequestOptions | None = None) -> list[Journey]:
         """Every journey of your company."""
         return await self._client.request("get", "/v1/journeys", options=options)
 
     async def get(
         self, journey_id: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> Journey:
         """One journey with its moments."""
         return await self._client.request(
-            "get", f"/v1/journeys/{journey_id}", options=options
+            "get", f"/v1/journeys/{quote(journey_id, safe='')}", options=options
         )
 
     async def create(
-        self, body: JourneyInput | dict[str, Any], options: RequestOptions | None = None
-    ) -> WokuRecord:
+        self,
+        body: JourneyInput | dict[str, Any] | BaseModel,
+        options: RequestOptions | None = None,
+    ) -> CreatedJourney:
         """Create a journey; the signing secret comes back once, here."""
         return await self._client.request(
             "post", "/v1/journeys", body=body, options=options
@@ -302,12 +322,15 @@ class AsyncJourneys:
     async def update(
         self,
         journey_id: str,
-        body: JourneyInput | dict[str, Any],
+        body: JourneyInput | dict[str, Any] | BaseModel,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> Journey:
         """Rename it, switch it on or off, or replace its moments."""
         return await self._client.request(
-            "patch", f"/v1/journeys/{journey_id}", body=body, options=options
+            "patch",
+            f"/v1/journeys/{quote(journey_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     async def delete(
@@ -315,16 +338,16 @@ class AsyncJourneys:
     ) -> None:
         """Delete a journey."""
         return await self._client.request(
-            "delete", f"/v1/journeys/{journey_id}", options=options
+            "delete", f"/v1/journeys/{quote(journey_id, safe='')}", options=options
         )
 
     async def rotate_webhook_secret(
         self, journey_id: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneySecret:
         """Mint a new signing secret, keeping the previous one valid."""
         return await self._client.request(
             "post",
-            f"/v1/journeys/{journey_id}/webhook-secret",
+            f"/v1/journeys/{quote(journey_id, safe='')}/webhook-secret",
             body={},
             options=options,
         )
@@ -334,11 +357,11 @@ class AsyncJourneys:
         journey_id: str,
         body: EnrollParams,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> EnrollmentResult:
         """Start the journey for one subject."""
         return await self._client.request(
             "post",
-            f"/v1/journeys/{journey_id}/enrollments",
+            f"/v1/journeys/{quote(journey_id, safe='')}/enrollments",
             body=body,
             options=options,
         )
@@ -359,7 +382,7 @@ class AsyncJourneys:
 
     async def get_enrollment(
         self, journey_id: str, enrollment_id: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneyEnrollment:
         """Read one case's history and next step."""
         return await self._client.request(
             "get",
@@ -376,7 +399,7 @@ class AsyncJourneys:
         enrollment_id: str,
         body: StopEnrollmentParams | None = None,
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> JourneyEnrollment:
         """Stop future work for one case, preserving answers and other cases."""
         return await self._client.request(
             "post",
@@ -390,7 +413,7 @@ class AsyncJourneys:
 
     async def connections(
         self, journey_id: str, options: RequestOptions | None = None
-    ) -> list[WokuRecord]:
+    ) -> list[JourneyConnection]:
         """Read credential readiness, not proof of a real webhook delivery."""
         return await self._client.request(
             "get",
@@ -400,9 +423,9 @@ class AsyncJourneys:
 
     async def mint_moment_url(
         self, journey_id: str, stage_key: str, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> JourneyMomentUrl:
         """Replace this moment's credential URL and return the new URL once."""
-        result: WokuRecord = await self._client.request(
+        result: JourneyMomentUrl = await self._client.request(
             "post",
             (
                 f"/v1/journeys/{quote(journey_id, safe='')}"
@@ -438,7 +461,7 @@ class AsyncJourneys:
         stage_key: str,
         payload: dict[str, Any],
         options: RequestOptions | None = None,
-    ) -> WokuRecord:
+    ) -> JourneyMomentPreview:
         """Interpret a sample with saved mapping without starting or sending."""
         return await self._client.request(
             "post",
@@ -452,7 +475,7 @@ class AsyncJourneys:
 
     async def emit_event(
         self, body: JourneyEventParams, options: RequestOptions | None = None
-    ) -> WokuRecord:
+    ) -> EventResult:
         """Emit one of your own events to every journey that listens for it."""
         return await self._client.request(
             "post", "/v1/journey-events", body=body, options=options
