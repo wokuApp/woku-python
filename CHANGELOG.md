@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0, pending publication
+## 0.3.0
 
 ### Customer journeys v3 and SDK v4
 
@@ -13,5 +13,4 @@
 - API and connection errors expose the original operation idempotency key.
 - Four-moment example, actual Python 3.9, wheel/sdist and test API validation.
 
-Deploy atomic API idempotency before publishing this SDK update. This changelog
-prepares a release; it does not publish or deploy any artifact.
+Requires the customer journey API release with atomic idempotency for protected writes.

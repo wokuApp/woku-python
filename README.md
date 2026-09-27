@@ -29,6 +29,8 @@ support tickets, delivery tracking and survey sends over the public `/v1` API.
 > **Server-only.** The secret key grants full management access. Keep it on your
 > backend, never in a browser, mobile app or other client you do not control.
 
+Version `0.3.0` adds customer journeys and multipart media upload to both clients.
+
 ## Install
 
 ```bash
