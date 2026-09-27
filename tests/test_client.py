@@ -19,7 +19,9 @@ from woku import (
     WokuError,
     WokuTimeoutError,
 )
+from woku._base_client import BaseClient
 
+_REAL_BACKOFF = BaseClient._backoff
 BASE = "http://api.test"
 
 
@@ -250,3 +252,90 @@ def test_caller_headers_cannot_unset_authorization() -> None:
         options={"headers": {"Authorization": "Bearer HIJACK", "X-Extra": "1"}},
     )
     assert route.calls.last.request.headers["authorization"] == "Bearer sk_test"
+
+
+@respx.mock
+def test_authorization_headers_are_case_insensitive() -> None:
+    route = respx.get(f"{BASE}/v1/thing").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    with client(default_headers={"authorization": "default"}) as sdk:
+        sdk.request(
+            "get", "/v1/thing", options={"headers": {"AUTHORIZATION": "caller"}}
+        )
+    assert route.calls.last.request.headers.get_list("authorization") == [
+        "Bearer sk_test"
+    ]
+
+
+@respx.mock
+def test_custom_http_client_cannot_override_the_configured_api_origin() -> None:
+    route = respx.get(f"{BASE}/v1/thing").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    with httpx.Client(base_url="https://other.test") as transport:
+        with client(http_client=transport) as sdk:
+            sdk.request("get", "/v1/thing")
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_absolute_api_paths_are_rejected_before_auth_can_leave_the_origin() -> None:
+    with client() as sdk:
+        for path in ["https://other.test/v1/thing", "//other.test/v1/thing"]:
+            with pytest.raises(WokuError) as error:
+                sdk.request("get", path)
+            assert error.value.code == "config_error"
+
+
+@respx.mock
+def test_long_retry_after_is_not_shortened(monkeypatch: pytest.MonkeyPatch) -> None:
+    delays: list[float] = []
+    monkeypatch.setattr(BaseClient, "_backoff", _REAL_BACKOFF)
+    monkeypatch.setattr("time.sleep", delays.append)
+    respx.get(f"{BASE}/v1/thing").mock(
+        side_effect=[
+            httpx.Response(429, headers={"Retry-After": "10"}),
+            httpx.Response(200, json={}),
+        ]
+    )
+    with client() as sdk:
+        sdk.request("get", "/v1/thing")
+    assert delays == [10.0]
+
+
+@respx.mock
+def test_explicit_idempotency_header_has_one_value_despite_casing() -> None:
+    route = respx.post(f"{BASE}/v1/journeys").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    with client() as sdk:
+        sdk.request(
+            "post",
+            "/v1/journeys",
+            body={},
+            idempotent=True,
+            options={
+                "idempotency_key": "operation",
+                "headers": {"x-woku-idempotency-key": "other"},
+            },
+        )
+    assert route.calls.last.request.headers.get_list("x-woku-idempotency-key") == [
+        "operation"
+    ]
+
+
+@respx.mock
+def test_nested_api_validation_envelope_retains_details() -> None:
+    body = {
+        "statusCode": 400,
+        "message": {
+            "message": ["trigger anchor is required", "invalid moment"],
+            "error": "Bad Request",
+        },
+    }
+    respx.post(f"{BASE}/v1/journeys").mock(return_value=httpx.Response(400, json=body))
+    with client() as sdk, pytest.raises(BadRequestError) as error:
+        sdk.journeys.create({"name": "Invalid"})
+    assert "trigger anchor is required, invalid moment" in str(error.value)
+    assert error.value.body == body

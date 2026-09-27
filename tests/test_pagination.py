@@ -81,3 +81,28 @@ async def test_async_auto_iterates_items_across_pages() -> None:
         first = await woku.get_page("/v1/items")
         ids = [item["id"] async for item in first]
     assert ids == ["a", "b"]
+
+
+@respx.mock
+def test_query_page_override_does_not_repeat_the_same_page() -> None:
+    requested: list[int] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        requested.append(page)
+        return httpx.Response(
+            200, json={"data": [page], "total": 3, "page": page, "limit": 1}
+        )
+
+    respx.get(f"{BASE}/v1/items").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url=BASE) as sdk:
+        page = sdk.get_page(
+            "/v1/items", {"page": 1, "limit": 1}, {"params": {"page": 2}}
+        )
+        values = []
+        for value in page:
+            values.append(value)
+            if len(values) == 3:
+                break
+    assert values == [2, 3]
+    assert requested == [2, 3]

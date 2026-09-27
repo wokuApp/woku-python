@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import random
 import uuid
@@ -10,6 +11,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -84,16 +86,28 @@ class BaseClient:
             headers.update(extra_headers)
         # Authorization is applied last so caller headers can never unset the
         # secret key (the documented guarantee on RequestOptions.headers).
-        headers["Authorization"] = f"Bearer {self._api_key}"
+        normalized = {name.lower(): (name, value) for name, value in headers.items()}
+        normalized["authorization"] = ("Authorization", f"Bearer {self._api_key}")
+        if idempotency_key is not None and method.upper() == "POST":
+            normalized.pop("x-woku-idempotency-key", None)
+        headers = dict(normalized.values())
         if idempotency_key is not None and method.upper() == "POST":
             headers[IDEMPOTENCY_HEADER] = idempotency_key
         return headers
 
+    def _url(self, path: str) -> str:
+        if urlsplit(path).scheme or path.startswith("//"):
+            raise WokuError(
+                "Use an API path relative to base_url, not an external URL.",
+                code="config_error",
+            )
+        return f"{self.base_url}/{path.lstrip('/')}"
+
     def _backoff(self, attempt: int, api_error: WokuAPIError | None = None) -> float:
         """Honor ``Retry-After`` (seconds) when present, else full jitter."""
         retry_after = api_error.retry_after_seconds if api_error is not None else None
-        if retry_after is not None:
-            return min(retry_after, RETRY_CAP_SECONDS)
+        if retry_after is not None and math.isfinite(retry_after) and retry_after >= 0:
+            return retry_after
         ceiling = min(RETRY_CAP_SECONDS, RETRY_BASE_SECONDS * (2**attempt))
         return random.random() * ceiling
 
@@ -105,7 +119,8 @@ def retry_after_from_headers(headers: Mapping[str, str]) -> float | None:
         return None
     raw = raw.strip()
     try:
-        return max(0.0, float(raw))
+        value = float(raw)
+        return max(0.0, value) if math.isfinite(value) else None
     except ValueError:
         pass
     try:

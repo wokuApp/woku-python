@@ -7,6 +7,7 @@ mutations use the plural (``/v1/nps-tools``), matching the server routes.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -50,7 +51,9 @@ class NpsTools:
         )
 
     def get(self, tool_id: str, options: RequestOptions | None = None) -> NpsTool:
-        return self._client.request("get", f"/v1/nps-tool/{tool_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/nps-tool/{quote(tool_id, safe='')}", options=options
+        )
 
     def update(
         self,
@@ -59,14 +62,17 @@ class NpsTools:
         options: RequestOptions | None = None,
     ) -> NpsTool:
         return self._client.request(
-            "patch", f"/v1/nps-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/nps-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return self._client.request(
-            "delete", f"/v1/nps-tools/{tool_id}", options=options
+            "delete", f"/v1/nps-tools/{quote(tool_id, safe='')}", options=options
         )
 
 
@@ -91,7 +97,9 @@ class CsatTools:
         )
 
     def get(self, tool_id: str, options: RequestOptions | None = None) -> CsatTool:
-        return self._client.request("get", f"/v1/csat-tool/{tool_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/csat-tool/{quote(tool_id, safe='')}", options=options
+        )
 
     def update(
         self,
@@ -100,14 +108,17 @@ class CsatTools:
         options: RequestOptions | None = None,
     ) -> CsatTool:
         return self._client.request(
-            "patch", f"/v1/csat-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/csat-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return self._client.request(
-            "delete", f"/v1/csat-tools/{tool_id}", options=options
+            "delete", f"/v1/csat-tools/{quote(tool_id, safe='')}", options=options
         )
 
 
@@ -132,7 +143,9 @@ class CesTools:
         )
 
     def get(self, tool_id: str, options: RequestOptions | None = None) -> CesTool:
-        return self._client.request("get", f"/v1/ces-tool/{tool_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/ces-tool/{quote(tool_id, safe='')}", options=options
+        )
 
     def update(
         self,
@@ -141,14 +154,17 @@ class CesTools:
         options: RequestOptions | None = None,
     ) -> CesTool:
         return self._client.request(
-            "patch", f"/v1/ces-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/ces-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return self._client.request(
-            "delete", f"/v1/ces-tools/{tool_id}", options=options
+            "delete", f"/v1/ces-tools/{quote(tool_id, safe='')}", options=options
         )
 
 
@@ -174,7 +190,7 @@ class AsyncNpsTools:
 
     async def get(self, tool_id: str, options: RequestOptions | None = None) -> NpsTool:
         return await self._client.request(
-            "get", f"/v1/nps-tool/{tool_id}", options=options
+            "get", f"/v1/nps-tool/{quote(tool_id, safe='')}", options=options
         )
 
     async def update(
@@ -184,14 +200,17 @@ class AsyncNpsTools:
         options: RequestOptions | None = None,
     ) -> NpsTool:
         return await self._client.request(
-            "patch", f"/v1/nps-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/nps-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     async def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return await self._client.request(
-            "delete", f"/v1/nps-tools/{tool_id}", options=options
+            "delete", f"/v1/nps-tools/{quote(tool_id, safe='')}", options=options
         )
 
 
@@ -219,7 +238,7 @@ class AsyncCsatTools:
         self, tool_id: str, options: RequestOptions | None = None
     ) -> CsatTool:
         return await self._client.request(
-            "get", f"/v1/csat-tool/{tool_id}", options=options
+            "get", f"/v1/csat-tool/{quote(tool_id, safe='')}", options=options
         )
 
     async def update(
@@ -229,14 +248,17 @@ class AsyncCsatTools:
         options: RequestOptions | None = None,
     ) -> CsatTool:
         return await self._client.request(
-            "patch", f"/v1/csat-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/csat-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     async def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return await self._client.request(
-            "delete", f"/v1/csat-tools/{tool_id}", options=options
+            "delete", f"/v1/csat-tools/{quote(tool_id, safe='')}", options=options
         )
 
 
@@ -262,7 +284,7 @@ class AsyncCesTools:
 
     async def get(self, tool_id: str, options: RequestOptions | None = None) -> CesTool:
         return await self._client.request(
-            "get", f"/v1/ces-tool/{tool_id}", options=options
+            "get", f"/v1/ces-tool/{quote(tool_id, safe='')}", options=options
         )
 
     async def update(
@@ -272,12 +294,15 @@ class AsyncCesTools:
         options: RequestOptions | None = None,
     ) -> CesTool:
         return await self._client.request(
-            "patch", f"/v1/ces-tools/{tool_id}", body=body, options=options
+            "patch",
+            f"/v1/ces-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     async def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return await self._client.request(
-            "delete", f"/v1/ces-tools/{tool_id}", options=options
+            "delete", f"/v1/ces-tools/{quote(tool_id, safe='')}", options=options
         )

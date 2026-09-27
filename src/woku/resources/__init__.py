@@ -12,6 +12,7 @@ from .company import AsyncCompany, Company
 from .dispatches import AsyncDispatches, Dispatches
 from .flows import AsyncFlows, Flows
 from .forms import AsyncForms, Forms
+from .journeys import AsyncJourneys, Journeys
 from .quarantines import AsyncQuarantines, Quarantines
 from .reports import AsyncReports, Reports
 from .surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
@@ -63,6 +64,8 @@ __all__ = [
     "Forms",
     "Nps",
     "NpsTools",
+    "Journeys",
+    "AsyncJourneys",
     "Quarantines",
     "Reports",
     "TicketDestinations",

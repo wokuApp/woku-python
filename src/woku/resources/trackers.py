@@ -65,7 +65,9 @@ class Trackers:
     def get(self, tracker_id: str, options: RequestOptions | None = None) -> Tracker:
         """Get one tracker definition."""
         return self._client.request(
-            "get", f"/v1/external-trackers/{tracker_id}", options=options
+            "get",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}",
+            options=options,
         )
 
     def update(
@@ -77,7 +79,7 @@ class Trackers:
         """Update a tracker definition."""
         return self._client.request(
             "patch",
-            f"/v1/external-trackers/{tracker_id}",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}",
             body=body,
             options=options,
         )
@@ -87,7 +89,9 @@ class Trackers:
     ) -> Tracker:
         """Activate a tracker definition."""
         return self._client.request(
-            "patch", f"/v1/external-trackers/{tracker_id}/activate", options=options
+            "patch",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}/activate",
+            options=options,
         )
 
     def deactivate(
@@ -95,7 +99,9 @@ class Trackers:
     ) -> Tracker:
         """Deactivate a tracker definition."""
         return self._client.request(
-            "patch", f"/v1/external-trackers/{tracker_id}/deactivate", options=options
+            "patch",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}/deactivate",
+            options=options,
         )
 
     def search_entities(
@@ -116,7 +122,9 @@ class Trackers:
     ) -> list[WokuRecord]:
         """List the tracker values assigned to a woku."""
         return self._client.request(
-            "get", f"/v1/external-trackers/wokus/{woku_id}", options=options
+            "get",
+            f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}",
+            options=options,
         )
 
     def assign_to_woku(
@@ -128,10 +136,9 @@ class Trackers:
         """Assign (upsert) a tracker value to a woku by tracker name."""
         return self._client.request(
             "post",
-            f"/v1/external-trackers/wokus/{woku_id}",
+            f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def remove_from_woku(
@@ -143,7 +150,10 @@ class Trackers:
         """Remove a tracker value from a woku by tracker name."""
         return self._client.request(
             "delete",
-            f"/v1/external-trackers/wokus/{woku_id}/{quote(tracker_name, safe='')}",
+            (
+                f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}"
+                f"/{quote(tracker_name, safe='')}"
+            ),
             options=options,
         )
 
@@ -163,7 +173,12 @@ class Trackers:
     ) -> list[WokuRecord]:
         """List the tracker values assigned to a VoC entity."""
         return self._client.request(
-            "get", f"/v1/external-trackers/{entity_type}/{entity_id}", options=options
+            "get",
+            (
+                f"/v1/external-trackers/{quote(entity_type, safe='')}"
+                f"/{quote(entity_id, safe='')}"
+            ),
+            options=options,
         )
 
     def assign_to_entity(
@@ -176,10 +191,12 @@ class Trackers:
         """Assign (upsert) a tracker value to a VoC entity by tracker name."""
         return self._client.request(
             "post",
-            f"/v1/external-trackers/{entity_type}/{entity_id}",
+            (
+                f"/v1/external-trackers/{quote(entity_type, safe='')}"
+                f"/{quote(entity_id, safe='')}"
+            ),
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def remove_from_entity(
@@ -192,7 +209,8 @@ class Trackers:
         """Remove a tracker value from a VoC entity by tracker name."""
         return self._client.request(
             "delete",
-            f"/v1/external-trackers/{entity_type}/{entity_id}"
+            f"/v1/external-trackers/{quote(entity_type, safe='')}"
+            f"/{quote(entity_id, safe='')}"
             f"/{quote(tracker_name, safe='')}",
             options=options,
         )
@@ -229,7 +247,9 @@ class AsyncTrackers:
     ) -> Tracker:
         """Get one tracker definition."""
         return await self._client.request(
-            "get", f"/v1/external-trackers/{tracker_id}", options=options
+            "get",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}",
+            options=options,
         )
 
     async def update(
@@ -241,7 +261,7 @@ class AsyncTrackers:
         """Update a tracker definition."""
         return await self._client.request(
             "patch",
-            f"/v1/external-trackers/{tracker_id}",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}",
             body=body,
             options=options,
         )
@@ -251,7 +271,9 @@ class AsyncTrackers:
     ) -> Tracker:
         """Activate a tracker definition."""
         return await self._client.request(
-            "patch", f"/v1/external-trackers/{tracker_id}/activate", options=options
+            "patch",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}/activate",
+            options=options,
         )
 
     async def deactivate(
@@ -259,7 +281,9 @@ class AsyncTrackers:
     ) -> Tracker:
         """Deactivate a tracker definition."""
         return await self._client.request(
-            "patch", f"/v1/external-trackers/{tracker_id}/deactivate", options=options
+            "patch",
+            f"/v1/external-trackers/{quote(tracker_id, safe='')}/deactivate",
+            options=options,
         )
 
     async def search_entities(
@@ -280,7 +304,9 @@ class AsyncTrackers:
     ) -> list[WokuRecord]:
         """List the tracker values assigned to a woku."""
         return await self._client.request(
-            "get", f"/v1/external-trackers/wokus/{woku_id}", options=options
+            "get",
+            f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}",
+            options=options,
         )
 
     async def assign_to_woku(
@@ -292,10 +318,9 @@ class AsyncTrackers:
         """Assign (upsert) a tracker value to a woku by tracker name."""
         return await self._client.request(
             "post",
-            f"/v1/external-trackers/wokus/{woku_id}",
+            f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def remove_from_woku(
@@ -307,7 +332,10 @@ class AsyncTrackers:
         """Remove a tracker value from a woku by tracker name."""
         return await self._client.request(
             "delete",
-            f"/v1/external-trackers/wokus/{woku_id}/{quote(tracker_name, safe='')}",
+            (
+                f"/v1/external-trackers/wokus/{quote(woku_id, safe='')}"
+                f"/{quote(tracker_name, safe='')}"
+            ),
             options=options,
         )
 
@@ -329,7 +357,12 @@ class AsyncTrackers:
     ) -> list[WokuRecord]:
         """List the tracker values assigned to a VoC entity."""
         return await self._client.request(
-            "get", f"/v1/external-trackers/{entity_type}/{entity_id}", options=options
+            "get",
+            (
+                f"/v1/external-trackers/{quote(entity_type, safe='')}"
+                f"/{quote(entity_id, safe='')}"
+            ),
+            options=options,
         )
 
     async def assign_to_entity(
@@ -342,10 +375,12 @@ class AsyncTrackers:
         """Assign (upsert) a tracker value to a VoC entity by tracker name."""
         return await self._client.request(
             "post",
-            f"/v1/external-trackers/{entity_type}/{entity_id}",
+            (
+                f"/v1/external-trackers/{quote(entity_type, safe='')}"
+                f"/{quote(entity_id, safe='')}"
+            ),
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def remove_from_entity(
@@ -358,7 +393,8 @@ class AsyncTrackers:
         """Remove a tracker value from a VoC entity by tracker name."""
         return await self._client.request(
             "delete",
-            f"/v1/external-trackers/{entity_type}/{entity_id}"
+            f"/v1/external-trackers/{quote(entity_type, safe='')}"
+            f"/{quote(entity_id, safe='')}"
             f"/{quote(tracker_name, safe='')}",
             options=options,
         )

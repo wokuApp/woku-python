@@ -40,8 +40,8 @@ MoveWokuParams = Union[_g.MoveWokuBodyDTO, JsonMapping]
 ShareWokuParams = Union[_g.V1ShareWokuBodyDto, JsonMapping]
 
 UpdateTicketParams = Union[_g.UpdateTicketBodyDTO, JsonMapping]
-CreateTicketDestinationParams = Union[_g.CreateTicketDestinationDto, JsonMapping]
-UpdateTicketDestinationParams = Union[_g.UpdateTicketDestinationDto, JsonMapping]
+CreateTicketDestinationParams = Union[_g.V1CreateTicketDestinationDto, JsonMapping]
+UpdateTicketDestinationParams = Union[_g.V1UpdateTicketDestinationDto, JsonMapping]
 
 CreateActionPlanGroupParams = Union[_g.CreateActionPlanGroupDto, JsonMapping]
 UpdateActionPlanGroupParams = Union[_g.UpdateActionPlanGroupDto, JsonMapping]

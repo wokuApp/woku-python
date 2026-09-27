@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import builtins
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -56,7 +57,7 @@ class ActionPlans:
 
     def get(self, plan_id: str, options: RequestOptions | None = None) -> WokuRecord:
         return self._client.request(
-            "get", f"/v1/action-plans/{plan_id}", options=options
+            "get", f"/v1/action-plans/{quote(plan_id, safe='')}", options=options
         )
 
     def events(
@@ -64,7 +65,7 @@ class ActionPlans:
     ) -> builtins.list[WokuRecord]:
         """The plan timeline (events, oldest first)."""
         return self._client.request(
-            "get", f"/v1/action-plans/{plan_id}/events", options=options
+            "get", f"/v1/action-plans/{quote(plan_id, safe='')}/events", options=options
         )
 
     def get_conversation(
@@ -72,7 +73,9 @@ class ActionPlans:
     ) -> WokuRecord:
         """The plan AI conversation (read-only)."""
         return self._client.request(
-            "get", f"/v1/action-plans/{plan_id}/conversation", options=options
+            "get",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/conversation",
+            options=options,
         )
 
     def reply(
@@ -86,7 +89,7 @@ class ActionPlans:
         """
         return self._client.request(
             "post",
-            f"/v1/action-plans/{plan_id}/conversation",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/conversation",
             body={"text": text, "confirm": True},
             options=options,
         )
@@ -99,10 +102,9 @@ class ActionPlans:
     ) -> WokuRecord:
         return self._client.request(
             "post",
-            f"/v1/action-plans/{plan_id}/tasks",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/tasks",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def update_task(
@@ -114,7 +116,10 @@ class ActionPlans:
     ) -> WokuRecord:
         return self._client.request(
             "patch",
-            f"/v1/action-plans/{plan_id}/tasks/{task_id}",
+            (
+                f"/v1/action-plans/{quote(plan_id, safe='')}"
+                f"/tasks/{quote(task_id, safe='')}"
+            ),
             body=body,
             options=options,
         )
@@ -127,7 +132,7 @@ class ActionPlans:
     ) -> WokuRecord:
         return self._client.request(
             "patch",
-            f"/v1/action-plans/{plan_id}/tasks/reorder",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/tasks/reorder",
             body=body,
             options=options,
         )
@@ -140,7 +145,10 @@ class ActionPlans:
     ) -> WokuRecord:
         return self._client.request(
             "delete",
-            f"/v1/action-plans/{plan_id}/tasks/{task_id}",
+            (
+                f"/v1/action-plans/{quote(plan_id, safe='')}"
+                f"/tasks/{quote(task_id, safe='')}"
+            ),
             options=options,
         )
 
@@ -167,7 +175,9 @@ class ActionPlans:
         self, plan_id: str, action: str, options: RequestOptions | None
     ) -> WokuRecord:
         return self._client.request(
-            "post", f"/v1/action-plans/{plan_id}/{action}", options=options
+            "post",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/{action}",
+            options=options,
         )
 
 
@@ -189,7 +199,7 @@ class ActionPlanGroups:
     def get(self, group_id: str, options: RequestOptions | None = None) -> WokuRecord:
         """Get one group with its embedded stats."""
         return self._client.request(
-            "get", f"/v1/action-plan-groups/{group_id}", options=options
+            "get", f"/v1/action-plan-groups/{quote(group_id, safe='')}", options=options
         )
 
     def create(
@@ -201,8 +211,7 @@ class ActionPlanGroups:
             "post",
             "/v1/action-plan-groups",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def update(
@@ -212,7 +221,10 @@ class ActionPlanGroups:
         options: RequestOptions | None = None,
     ) -> WokuRecord:
         return self._client.request(
-            "patch", f"/v1/action-plan-groups/{group_id}", body=body, options=options
+            "patch",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     def set_enabled(
@@ -223,7 +235,7 @@ class ActionPlanGroups:
     ) -> WokuRecord:
         return self._client.request(
             "patch",
-            f"/v1/action-plan-groups/{group_id}/enabled",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}/enabled",
             body={"enabled": enabled},
             options=options,
         )
@@ -232,7 +244,9 @@ class ActionPlanGroups:
         self, group_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return self._client.request(
-            "delete", f"/v1/action-plan-groups/{group_id}", options=options
+            "delete",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}",
+            options=options,
         )
 
 
@@ -253,7 +267,7 @@ class AsyncActionPlans:
         self, plan_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "get", f"/v1/action-plans/{plan_id}", options=options
+            "get", f"/v1/action-plans/{quote(plan_id, safe='')}", options=options
         )
 
     async def events(
@@ -261,7 +275,7 @@ class AsyncActionPlans:
     ) -> builtins.list[WokuRecord]:
         """The plan timeline (events, oldest first)."""
         return await self._client.request(
-            "get", f"/v1/action-plans/{plan_id}/events", options=options
+            "get", f"/v1/action-plans/{quote(plan_id, safe='')}/events", options=options
         )
 
     async def get_conversation(
@@ -269,7 +283,9 @@ class AsyncActionPlans:
     ) -> WokuRecord:
         """The plan AI conversation (read-only)."""
         return await self._client.request(
-            "get", f"/v1/action-plans/{plan_id}/conversation", options=options
+            "get",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/conversation",
+            options=options,
         )
 
     async def reply(
@@ -278,7 +294,7 @@ class AsyncActionPlans:
         """Reply to the plan AI agent (paid turn; ``confirm`` sent automatically)."""
         return await self._client.request(
             "post",
-            f"/v1/action-plans/{plan_id}/conversation",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/conversation",
             body={"text": text, "confirm": True},
             options=options,
         )
@@ -291,10 +307,9 @@ class AsyncActionPlans:
     ) -> WokuRecord:
         return await self._client.request(
             "post",
-            f"/v1/action-plans/{plan_id}/tasks",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/tasks",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def update_task(
@@ -306,7 +321,10 @@ class AsyncActionPlans:
     ) -> WokuRecord:
         return await self._client.request(
             "patch",
-            f"/v1/action-plans/{plan_id}/tasks/{task_id}",
+            (
+                f"/v1/action-plans/{quote(plan_id, safe='')}"
+                f"/tasks/{quote(task_id, safe='')}"
+            ),
             body=body,
             options=options,
         )
@@ -319,7 +337,7 @@ class AsyncActionPlans:
     ) -> WokuRecord:
         return await self._client.request(
             "patch",
-            f"/v1/action-plans/{plan_id}/tasks/reorder",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/tasks/reorder",
             body=body,
             options=options,
         )
@@ -332,7 +350,10 @@ class AsyncActionPlans:
     ) -> WokuRecord:
         return await self._client.request(
             "delete",
-            f"/v1/action-plans/{plan_id}/tasks/{task_id}",
+            (
+                f"/v1/action-plans/{quote(plan_id, safe='')}"
+                f"/tasks/{quote(task_id, safe='')}"
+            ),
             options=options,
         )
 
@@ -365,7 +386,9 @@ class AsyncActionPlans:
         self, plan_id: str, action: str, options: RequestOptions | None
     ) -> WokuRecord:
         return await self._client.request(
-            "post", f"/v1/action-plans/{plan_id}/{action}", options=options
+            "post",
+            f"/v1/action-plans/{quote(plan_id, safe='')}/{action}",
+            options=options,
         )
 
 
@@ -389,7 +412,7 @@ class AsyncActionPlanGroups:
     ) -> WokuRecord:
         """Get one group with its embedded stats."""
         return await self._client.request(
-            "get", f"/v1/action-plan-groups/{group_id}", options=options
+            "get", f"/v1/action-plan-groups/{quote(group_id, safe='')}", options=options
         )
 
     async def create(
@@ -401,8 +424,7 @@ class AsyncActionPlanGroups:
             "post",
             "/v1/action-plan-groups",
             body=body,
-            idempotent=True,
-            options=options,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def update(
@@ -412,7 +434,10 @@ class AsyncActionPlanGroups:
         options: RequestOptions | None = None,
     ) -> WokuRecord:
         return await self._client.request(
-            "patch", f"/v1/action-plan-groups/{group_id}", body=body, options=options
+            "patch",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}",
+            body=body,
+            options=options,
         )
 
     async def set_enabled(
@@ -423,7 +448,7 @@ class AsyncActionPlanGroups:
     ) -> WokuRecord:
         return await self._client.request(
             "patch",
-            f"/v1/action-plan-groups/{group_id}/enabled",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}/enabled",
             body={"enabled": enabled},
             options=options,
         )
@@ -432,5 +457,7 @@ class AsyncActionPlanGroups:
         self, group_id: str, options: RequestOptions | None = None
     ) -> WokuRecord:
         return await self._client.request(
-            "delete", f"/v1/action-plan-groups/{group_id}", options=options
+            "delete",
+            f"/v1/action-plan-groups/{quote(group_id, safe='')}",
+            options=options,
         )

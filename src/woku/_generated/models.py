@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Optional, Union
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -35,11 +37,29 @@ class ValidationErrorResponseDto(BaseModel):
 
 
 class CreateWokuApiDto(BaseModel):
-    pass
+    description: str
+    """
+    The subject evaluated by this Woku
+    """
+    fileUrl: str
+    """
+    Public image or MP4 URL
+    """
+    folderSecondaryKey: Optional[str] = None
+    parentFolderSecondaryKey: Optional[str] = None
+    clientEmail: Optional[str] = None
+    clientPhone: Optional[float] = None
 
 
 class CreateWokuFormDataApiDto(BaseModel):
-    pass
+    description: str
+    """
+    The subject evaluated by this Woku
+    """
+    folderSecondaryKey: Optional[str] = None
+    parentFolderSecondaryKey: Optional[str] = None
+    clientEmail: Optional[str] = None
+    clientPhone: Optional[str] = None
 
 
 class CreateExternalTrackerDefinitionDTO(BaseModel):
@@ -166,20 +186,17 @@ class TicketDestinationTemplateDto(BaseModel):
 
 class Kind(Enum):
     zendesk = 'zendesk'
-    salesforce = 'salesforce'
-    slack = 'slack'
     custom = 'custom'
     email = 'email'
 
 
-class CreateTicketDestinationDto(BaseModel):
+class V1CreateTicketDestinationDto(BaseModel):
     name: Annotated[str, Field(examples=['Zendesk Soporte Chile'], max_length=120)]
-    kind: Kind
     config: dict[str, Any]
     """
     Non-secret provider config (validated per kind).
     """
-    credentials: dict[str, Any]
+    credentials: dict[str, str]
     """
     Provider credentials (write-only, encrypted).
     """
@@ -189,13 +206,13 @@ class CreateTicketDestinationDto(BaseModel):
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
+    kind: Kind
 
 
-class UpdateTicketDestinationDto(BaseModel):
+class V1UpdateTicketDestinationDto(BaseModel):
     name: Annotated[Optional[str], Field(max_length=120)] = None
-    kind: Optional[Kind] = None
     config: Optional[dict[str, Any]] = None
-    credentials: Optional[dict[str, Any]] = None
+    credentials: Optional[dict[str, str]] = None
     """
     Present = credential rotation.
     """
@@ -206,6 +223,7 @@ class UpdateTicketDestinationDto(BaseModel):
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
     enabled: Optional[bool] = None
+    kind: Optional[Kind] = None
 
 
 class TestTicketDestinationBodyDTO(BaseModel):
@@ -242,6 +260,10 @@ class ActionPlanGroupMemberDto(BaseModel):
 
 
 class CreateActionPlanGroupDto(BaseModel):
+    notificationEmails: Optional[list[str]] = None
+    """
+    Additional email recipients; grants no membership.
+    """
     name: Annotated[str, Field(examples=['Atención en tienda'], max_length=120)]
     description: Annotated[Optional[str], Field(max_length=500)] = None
     conditions: list[ActionPlanGroupConditionDto]
@@ -250,7 +272,7 @@ class CreateActionPlanGroupDto(BaseModel):
     """
     members: list[ActionPlanGroupMemberDto]
     """
-    Group team; at least one admin and one assignee.
+    Group team; at least one admin (assignees optional).
     """
     threshold: Annotated[Optional[float], Field(ge=1.0)] = 300
     """
@@ -259,6 +281,10 @@ class CreateActionPlanGroupDto(BaseModel):
 
 
 class UpdateActionPlanGroupDto(BaseModel):
+    notificationEmails: Optional[list[str]] = None
+    """
+    Additional email recipients; grants no membership.
+    """
     name: Annotated[Optional[str], Field(max_length=120)] = None
     description: Annotated[Optional[str], Field(max_length=500)] = None
     """
@@ -285,22 +311,21 @@ class PostPlanReplyBodyDTO(BaseModel):
 
 
 class Provider(Enum):
-    jira = 'jira'
-    monday = 'monday'
-    clickup = 'clickup'
-    notion = 'notion'
+    """
+    Only `internal` (manage the plan inside woku) is available.
+    """
+
     internal = 'internal'
 
 
-class SendActionPlanDto(BaseModel):
+class V1SendActionPlanDto(BaseModel):
     provider: Provider
-    target: Optional[dict[str, Any]] = None
     """
-    Provider-specific resource ids (external providers): jira {siteId?, projectId, issueTypeId} · monday {boardId, groupId} · clickup {listId} · notion {databaseId}. Omitted for the managed provider.
+    Only `internal` (manage the plan inside woku) is available.
     """
     resourceLabel: Annotated[Optional[str], Field(max_length=300)] = None
     """
-    Human destination summary the drawer built ("Operaciones CX · Backlog"); persisted as delivery.resourceLabel. Omitted for the managed provider.
+    Optional human-readable label for the destination.
     """
 
 
@@ -393,6 +418,10 @@ class MoveWokuBodyDTO(BaseModel):
 
 
 class V1CreateTextnoteBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     qualification: Annotated[float, Field(examples=[5])]
     """
     Star rating (1-5)
@@ -452,6 +481,10 @@ class Anonymous(Enum):
 
 
 class V1CreateVoicemailBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     file: bytes
     """
     Audio file for the voicemail
@@ -495,6 +528,17 @@ class V1ShareWokuBodyDto(BaseModel):
     """
 
 
+class Type(Enum):
+    image = 'image'
+    video = 'video'
+
+
+class WokuMediaUploadResultDto(BaseModel):
+    fileId: str
+    filename: str
+    type: Type
+
+
 class V1ApiKeyResultDto(BaseModel):
     apiKey: str
     """
@@ -521,6 +565,10 @@ class V1CreateNpsBodyDto(BaseModel):
     clientEmail: Optional[str] = None
     """
     Respondent email. Omit for an anonymous capture.
+    """
+    clientPhone: Optional[str] = None
+    """
+    Respondent phone when email is not supplied.
     """
     anonymous: Optional[bool] = None
     """
@@ -672,6 +720,10 @@ class Language1(Enum):
 
 
 class V1CaptureBodyDto(BaseModel):
+    dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
+    """
+    Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
+    """
     id: Optional[str] = None
     """
     Client-generated idempotency id
@@ -699,6 +751,23 @@ class V1CaptureBodyDto(BaseModel):
     """
     audio: Optional[V1CaptureAudioDto] = None
     respondent: Optional[V1CaptureRespondentDto] = None
+
+
+class Status1(Enum):
+    accepted = 'accepted'
+
+
+class V1CaptureResultDto(BaseModel):
+    id: Optional[str] = None
+    """
+    Client submission id, echoed without replacing the server id.
+    """
+    kind: Kind2
+    remoteId: Optional[str] = None
+    """
+    Server id of the created feedback resource.
+    """
+    status: Status1
 
 
 class Channel(Enum):
@@ -876,21 +945,16 @@ class V1CreateFormResponseBodyDto(BaseModel):
 class NpsToolLocalizedContentBodyDTO(BaseModel):
     locale: Annotated[Locale, Field(examples=['en'])]
     npsMessage: Annotated[
-        str,
-        Field(
-            examples=['How likely are you to recommend us?'],
-            max_length=140,
-            min_length=3,
-        ),
+        str, Field(examples=['our company'], max_length=140, min_length=3)
     ]
     """
-    Translated NPS question for this locale.
+    Recommended company/product/service fragment for this locale (e.g. "our company"), NOT the full question.
     """
     audienceType: Annotated[
-        Optional[str], Field(examples=['customers'], max_length=140)
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
     ] = None
     """
-    Translated audience for this locale.
+    Audience fragment for this locale, NOT the full question.
     """
 
 
@@ -909,21 +973,16 @@ class CreateNpsToolBodyDTO(BaseModel):
     Tool name for identification.
     """
     npsMessage: Annotated[
-        str,
-        Field(
-            examples=['How likely are you to recommend our service to a friend?'],
-            max_length=140,
-            min_length=3,
-        ),
+        str, Field(examples=['our company'], max_length=140, min_length=3)
     ]
     """
-    Public NPS question shown to respondents.
+    Only the company, product or service recommended (e.g. "our company"), NOT the full question. The public question is composed as "On a scale of 0 to 10, how likely are you to recommend {npsMessage} to {audienceType}?".
     """
     audienceType: Annotated[
-        Optional[str], Field(examples=['customers'], max_length=140)
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
     ] = None
     """
-    Audience the survey targets.
+    Only who the survey targets (e.g. "a friend or colleague"), NOT the full question.
     """
     availableLocales: Annotated[Optional[list[str]], Field(examples=[['es', 'en']])] = (
         None
@@ -945,8 +1004,18 @@ class DefaultLocale2(Enum):
 
 class UpdateNpsToolBodyDTO(BaseModel):
     name: Annotated[Optional[str], Field(max_length=140)] = None
-    npsMessage: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
-    audienceType: Annotated[Optional[str], Field(max_length=140)] = None
+    npsMessage: Annotated[
+        Optional[str], Field(examples=['our company'], max_length=140, min_length=3)
+    ] = None
+    """
+    Recommended company/product/service fragment (e.g. "our company"), NOT the full question.
+    """
+    audienceType: Annotated[
+        Optional[str], Field(examples=['a friend or colleague'], max_length=140)
+    ] = None
+    """
+    Audience fragment (e.g. "partners"), NOT the full question.
+    """
     availableLocales: Annotated[Optional[list[str]], Field(examples=[['es', 'en']])] = (
         None
     )
@@ -1127,3 +1196,759 @@ class UpdateTicketBodyDTO(BaseModel):
     severity: Optional[Severity] = None
     aiSummary: Annotated[Optional[str], Field(max_length=2000)] = None
     aiCategory: Annotated[Optional[str], Field(max_length=200)] = None
+
+
+class V1JourneyContactDto(BaseModel):
+    email: Annotated[Optional[str], Field(examples=['cliente@example.com'])] = None
+    phone: Annotated[Optional[str], Field(examples=['56911111111'])] = None
+    """
+    Phone with country code, digits only
+    """
+
+
+class V1JourneyPendingMomentDto(BaseModel):
+    key: str
+    name: Optional[str] = None
+
+
+class Status2(Enum):
+    pending = 'pending'
+    active = 'active'
+    sent = 'sent'
+    responded = 'responded'
+    done = 'done'
+    skipped = 'skipped'
+
+
+class ToolType(Enum):
+    woku = 'woku'
+    csat = 'csat'
+    ces = 'ces'
+    nps = 'nps'
+    flow = 'flow'
+    form = 'form'
+
+
+class ToolScope(Enum):
+    shared = 'shared'
+    per_enrollment = 'per_enrollment'
+
+
+class ActivationSource(Enum):
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+    timer = 'timer'
+    fallback = 'fallback'
+
+
+class V1JourneyMomentProgressDto(BaseModel):
+    key: str
+    name: str
+    status: Status2
+    toolId: Optional[str] = None
+    toolType: Optional[ToolType] = None
+    toolScope: Optional[ToolScope] = None
+    sentAt: Optional[datetime] = None
+    respondedAt: Optional[datetime] = None
+    activationSource: Optional[ActivationSource] = None
+    hookReceivedAt: Optional[datetime] = None
+
+
+class Lifecycle(Enum):
+    pending = 'pending'
+    running = 'running'
+    stopping = 'stopping'
+    stopped = 'stopped'
+    completed = 'completed'
+
+
+class StartSource(Enum):
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class Source(Enum):
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+    timer = 'timer'
+    fallback = 'fallback'
+
+
+class Next(BaseModel):
+    stageKey: str
+    name: str
+    source: Source
+    scheduledFor: Optional[datetime] = None
+
+
+class V1JourneyParticipationDto(BaseModel):
+    id: str
+    subjectKey: str
+    contact: V1JourneyContactDto
+    lifecycle: Lifecycle
+    definitionVersion: Optional[float] = None
+    startedAt: Optional[datetime] = None
+    startSource: Optional[StartSource] = None
+    stoppedAt: Optional[datetime] = None
+    completedAt: Optional[datetime] = None
+    stopRequestedAt: Optional[datetime] = None
+    stoppedBy: Optional[str] = None
+    stopReason: Optional[str] = None
+    dispatchOutcomeUncertain: bool
+    createdAt: Optional[datetime] = None
+    pendingMoments: list[V1JourneyPendingMomentDto]
+    moments: list[V1JourneyMomentProgressDto]
+    next: Next
+
+
+class V1JourneyParticipationPageDto(BaseModel):
+    items: list[V1JourneyParticipationDto]
+    nextCursor: Optional[str] = None
+    """
+    Present only when another page exists; omit cursor for the first page.
+    """
+
+
+class StopJourneyParticipationDto(BaseModel):
+    reason: Annotated[Optional[str], Field(max_length=280)] = None
+
+
+class Mode(Enum):
+    woku_signature = 'woku_signature'
+    url_token = 'url_token'
+    sender_hmac = 'sender_hmac'
+
+
+class V1JourneyConnectionDto(BaseModel):
+    stageKey: str
+    mode: Mode
+    configured: bool
+    """
+    Credential readiness, not proof of webhook delivery.
+    """
+    url: str
+    """
+    Credential-free inbound endpoint. Minting a URL token returns the credential URL separately.
+    """
+
+
+class V1JourneyMomentUrlDto(BaseModel):
+    token: str
+    """
+    Returned only by this operation; store securely.
+    """
+    url: str
+    """
+    Credential URL. Minting replaces the prior token, including for existing participations.
+    """
+
+
+class SetSenderSecretDto(BaseModel):
+    senderSecret: str
+    """
+    The signing secret the external system gave you. Stored encrypted; never returned.
+    """
+
+
+class V1PreviewJourneyMomentDto(BaseModel):
+    payload: dict[str, Any]
+    """
+    Sample payload. Does not verify signatures, enroll clients or send invitations.
+    """
+
+
+class V1JourneyTrackerDto(BaseModel):
+    name: Annotated[str, Field(examples=['campaign'])]
+    value: Annotated[str, Field(examples=['black-friday'])]
+
+
+class V1JourneyLocaleDto(BaseModel):
+    es: Optional[str] = None
+    en: Optional[str] = None
+
+
+class V1JourneyPreviewFolderDto(BaseModel):
+    secondaryKey: str
+    name: str
+    parentSecondaryKey: Optional[str] = None
+    parentName: Optional[str] = None
+
+
+class V1JourneyPreviewContentDto(BaseModel):
+    title: str
+    imageUrl: Optional[str] = None
+    trackers: Optional[list[V1JourneyTrackerDto]] = None
+    question: Optional[V1JourneyLocaleDto] = None
+    folder: Optional[V1JourneyPreviewFolderDto] = None
+    clientFields: dict[str, Union[str, float, bool]]
+    """
+    Resolved additional client fields.
+    """
+
+
+class V1JourneyPreviewResponseDto(BaseModel):
+    matches: bool
+    subjectKey: str
+    contact: V1JourneyContactDto
+    preview: Optional[V1JourneyPreviewContentDto] = None
+    """
+    Present for matching dynamic webhook content.
+    """
+
+
+class JourneyPlanMemberDto(BaseModel):
+    userId: str
+    """
+    Company member user id.
+    """
+    role: Role
+
+
+class JourneyRecipientsDto(BaseModel):
+    ticketsEnabled: Optional[bool] = None
+    """
+    Omit to keep ticket creation enabled.
+    """
+    plansEnabled: Optional[bool] = None
+    """
+    Omit to keep plan creation enabled.
+    """
+    ticketEmails: list[str]
+    """
+    Ticket email recipients, including the creator by default.
+    """
+    planMembers: list[JourneyPlanMemberDto]
+    """
+    Platform users who belong to the journey action-plan group.
+    """
+
+
+class V1JourneyRoutingDto(BaseModel):
+    ticketsReady: bool
+    plansReady: bool
+    ticketDestinationId: Optional[str] = None
+    actionPlanGroupId: Optional[str] = None
+
+
+class V1JourneyToolSpecDto(BaseModel):
+    fileId: Optional[str] = None
+    """
+    Woku uploaded public media ID belonging to this company.
+    """
+    imageUrl: Optional[str] = None
+    """
+    Derived media URL. Saving with fileId resolves its authoritative URL.
+    """
+    descriptionEn: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
+    subject: Optional[V1JourneyLocaleDto] = None
+    """
+    Variable in the fixed CSAT, CES or NPS question, not the complete question.
+    """
+    audience: Optional[V1JourneyLocaleDto] = None
+    """
+    NPS recommendation audience.
+    """
+
+
+class V1JourneySendWindowDto(BaseModel):
+    startHour: Annotated[float, Field(ge=0.0, le=23.0)]
+    endHour: Annotated[float, Field(ge=1.0, le=24.0)]
+    timeZone: Annotated[str, Field(examples=['America/Santiago'])]
+
+
+class Mode1(Enum):
+    """
+    Verification configuration only. Set secret material through the credential endpoints.
+    """
+
+    woku_signature = 'woku_signature'
+    url_token = 'url_token'
+    sender_hmac = 'sender_hmac'
+
+
+class Encoding(Enum):
+    hex = 'hex'
+    base64 = 'base64'
+
+
+class SignedPayload(Enum):
+    body = 'body'
+    timestamp_dot_body = 'timestamp_dot_body'
+
+
+class V1JourneyVerificationDto(BaseModel):
+    mode: Mode1
+    """
+    Verification configuration only. Set secret material through the credential endpoints.
+    """
+    header: Optional[str] = None
+    encoding: Optional[Encoding] = None
+    prefix: Optional[str] = None
+    signedPayload: Optional[SignedPayload] = None
+    timestampHeader: Optional[str] = None
+
+
+class V1JourneyPayloadRuleDto(BaseModel):
+    path: Annotated[str, Field(examples=['order.status'])]
+    equals: Annotated[str, Field(examples=['delivered'])]
+
+
+class V1JourneyClientFieldDto(BaseModel):
+    key: str
+    """
+    Unique Client.customFields key; at most 20 mappings.
+    """
+    path: Annotated[str, Field(examples=['customer.tier'])]
+
+
+class V1JourneyPayloadMapDto(BaseModel):
+    subjectKey: Optional[str] = None
+    """
+    Dotted path to the stable case reference.
+    """
+    email: Annotated[Optional[str], Field(examples=['customer.email'])] = None
+    phone: Annotated[Optional[str], Field(examples=['customer.phone'])] = None
+    match: Optional[list[V1JourneyPayloadRuleDto]] = None
+    clientFields: Annotated[
+        Optional[list[V1JourneyClientFieldDto]], Field(max_length=20)
+    ] = None
+
+
+class Type1(Enum):
+    manual = 'manual'
+    event = 'event'
+    webhook = 'webhook'
+    afterStage = 'afterStage'
+
+
+class Anchor(Enum):
+    sent = 'sent'
+    response = 'response'
+    event = 'event'
+
+
+class V1JourneyTriggerDto(BaseModel):
+    type: Type1
+    event: Optional[str] = None
+    """
+    Legacy event trigger name. Reserved journey events cannot be emitted.
+    """
+    stage: Optional[str] = None
+    """
+    afterStage: key of the earlier moment.
+    """
+    anchor: Optional[Anchor] = None
+    delayMs: Annotated[Optional[float], Field(ge=0.0)] = None
+    """
+    afterStage wait in milliseconds. A v2 zero delay means one hour.
+    """
+    window: Optional[V1JourneySendWindowDto] = None
+    verification: Optional[V1JourneyVerificationDto] = None
+    """
+    Legacy webhook verification; use webhook.verification in v2.
+    """
+    payload: Optional[V1JourneyPayloadMapDto] = None
+    """
+    Legacy webhook mapping; use webhook.payload in v2.
+    """
+
+
+class Mode2(Enum):
+    literal = 'literal'
+    javascript = 'javascript'
+
+
+class V1JourneyTextValueDto(BaseModel):
+    mode: Mode2
+    value: str
+    """
+    Literal (up to 200 characters) or bounded JavaScript function body (up to 2000). JavaScript receives payload and must return a string; no IO or imports.
+    """
+
+
+class V1JourneyDynamicLocaleDto(BaseModel):
+    es: Optional[V1JourneyTextValueDto] = None
+    en: Optional[V1JourneyTextValueDto] = None
+
+
+class V1JourneyTrackerMappingDto(BaseModel):
+    name: str
+    """
+    Tracker name, at most 60 characters. Journey system trackers are reserved.
+    """
+    path: Annotated[str, Field(examples=['order.id'])]
+
+
+class V1JourneyWebhookContentDto(BaseModel):
+    description: Optional[V1JourneyTextValueDto] = None
+    descriptionEn: Optional[V1JourneyTextValueDto] = None
+    folderSecondaryKey: Optional[V1JourneyTextValueDto] = None
+    folderName: Optional[V1JourneyTextValueDto] = None
+    parentFolderSecondaryKey: Optional[V1JourneyTextValueDto] = None
+    parentFolderName: Optional[V1JourneyTextValueDto] = None
+    subject: Optional[V1JourneyDynamicLocaleDto] = None
+    audience: Optional[V1JourneyDynamicLocaleDto] = None
+    imageUrlPath: Optional[str] = None
+    """
+    Woku only: dotted path to a public HTTPS image URL.
+    """
+    trackers: Annotated[
+        Optional[list[V1JourneyTrackerMappingDto]], Field(max_length=20)
+    ] = None
+
+
+class ContentMode(Enum):
+    """
+    Content source, independent from trigger. Webhook content requires per_enrollment scope.
+    """
+
+    manual = 'manual'
+    webhook = 'webhook'
+
+
+class V1JourneyWebhookDto(BaseModel):
+    verification: Optional[V1JourneyVerificationDto] = None
+    payload: Optional[V1JourneyPayloadMapDto] = None
+    contentMode: Optional[ContentMode] = None
+    """
+    Content source, independent from trigger. Webhook content requires per_enrollment scope.
+    """
+    schema_: Annotated[Optional[dict[str, Any]], Field(alias='schema')] = None
+    """
+    Bounded JSON Schema: object root, at most 20000 characters, depth 8, 200 nodes and 50 properties per node. Supports type, properties, required, additionalProperties, items, enum, minLength, maxLength, minimum, maximum, minItems, maxItems, title and description. No references or regex.
+    """
+    content: Optional[V1JourneyWebhookContentDto] = None
+
+
+class V1JourneySequenceDto(BaseModel):
+    attemptOffsetsMs: list[float]
+    """
+    Initial invitation and reminder offsets from activation. [0, 86400000] sends one reminder the next day.
+    """
+    deadlineMs: Annotated[float, Field(ge=1.0)]
+    cooldownAfterResponseMs: Annotated[float, Field(ge=0.0)]
+    sendWindow: Optional[V1JourneySendWindowDto] = None
+
+
+class V1JourneyPresentationDto(BaseModel):
+    imageUrl: Optional[str] = None
+    copy_: Annotated[Optional[V1JourneyLocaleDto], Field(alias='copy')] = None
+
+
+class Type2(Enum):
+    csat = 'csat'
+    ces = 'ces'
+    woku = 'woku'
+    nps = 'nps'
+    flow = 'flow'
+    form = 'form'
+
+
+class V1JourneyLegacyToolRefDto(BaseModel):
+    type: Type2
+    id: str
+
+
+class Tool(Enum):
+    woku = 'woku'
+    csat = 'csat'
+    ces = 'ces'
+    nps = 'nps'
+
+
+class ToolScope1(Enum):
+    """
+    V2 defaults to shared within this moment. Dynamic webhook content requires per_enrollment.
+    """
+
+    shared = 'shared'
+    per_enrollment = 'per_enrollment'
+
+
+class Channel5(Enum):
+    email = 'email'
+    whatsapp_first = 'whatsapp_first'
+
+
+class V1JourneyMomentReadDto(BaseModel):
+    key: Annotated[str, Field(pattern='^[A-Za-z0-9_-]{1,64}$')]
+    name: Annotated[Optional[str], Field(max_length=80)] = None
+    description: Annotated[Optional[str], Field(max_length=280)] = None
+    order: Optional[float] = None
+    """
+    Display order. Execution follows the trigger graph.
+    """
+    tool: Tool
+    toolScope: Optional[ToolScope1] = None
+    """
+    V2 defaults to shared within this moment. Dynamic webhook content requires per_enrollment.
+    """
+    toolSpec: Optional[V1JourneyToolSpecDto] = None
+    enabled: bool
+    trigger: V1JourneyTriggerDto
+    webhook: Optional[V1JourneyWebhookDto] = None
+    channel: Channel5
+    sequence: V1JourneySequenceDto
+    presentation: Optional[V1JourneyPresentationDto] = None
+    fallbackAfterMs: Annotated[Optional[float], Field(ge=1.0)] = None
+    """
+    Secondary wait for a webhook-primary moment.
+    """
+    fallbackFromStage: Optional[str] = None
+    """
+    Key of the enabled moment that arms the secondary wait.
+    """
+    toolRef: Optional[V1JourneyLegacyToolRefDto] = None
+    """
+    Legacy snapshots only. New assignments of existing tools are rejected.
+    """
+
+
+class AuthoringVersion(Enum):
+    number_1 = 1
+    number_2 = 2
+
+
+class StartMode(Enum):
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class V1JourneyResponseDto(BaseModel):
+    id: str
+    key: Optional[str] = None
+    name: Optional[str] = None
+    enabled: bool
+    version: float
+    authoringVersion: Optional[AuthoringVersion] = None
+    startMode: Optional[StartMode] = None
+    recipients: Optional[JourneyRecipientsDto] = None
+    routing: Optional[V1JourneyRoutingDto] = None
+    moments: list[V1JourneyMomentReadDto]
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+
+
+class V1JourneyMomentDto(BaseModel):
+    key: Annotated[str, Field(pattern='^[A-Za-z0-9_-]{1,64}$')]
+    name: Annotated[Optional[str], Field(max_length=80)] = None
+    description: Annotated[Optional[str], Field(max_length=280)] = None
+    order: Optional[float] = None
+    """
+    Display order. Execution follows the trigger graph.
+    """
+    tool: Tool
+    toolScope: Optional[ToolScope1] = None
+    """
+    V2 defaults to shared within this moment. Dynamic webhook content requires per_enrollment.
+    """
+    toolSpec: Optional[V1JourneyToolSpecDto] = None
+    enabled: bool
+    trigger: V1JourneyTriggerDto
+    webhook: Optional[V1JourneyWebhookDto] = None
+    channel: Channel5
+    sequence: V1JourneySequenceDto
+    presentation: Optional[V1JourneyPresentationDto] = None
+    fallbackAfterMs: Annotated[Optional[float], Field(ge=1.0)] = None
+    """
+    Secondary wait for a webhook-primary moment.
+    """
+    fallbackFromStage: Optional[str] = None
+    """
+    Key of the enabled moment that arms the secondary wait.
+    """
+
+
+class AuthoringVersion1(Enum):
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+
+    number_1 = 1
+    number_2 = 2
+
+
+class StartMode1(Enum):
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class V1CreateJourneyBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
+    authoringVersion: Optional[AuthoringVersion1] = None
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+    startMode: Optional[StartMode1] = None
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+    recipients: Optional[JourneyRecipientsDto] = None
+    name: Annotated[str, Field(examples=['Viaje de ventas'])]
+    enabled: Optional[bool] = False
+    """
+    A journey is born switched off. Turn it on when it is ready.
+    """
+    moments: Optional[list[V1JourneyMomentDto]] = None
+    """
+    The moments of the journey. Each creates a woku, CSAT, CES, or NPS from toolSpec. New v2 moments default to shared within that moment; per_enrollment creates one tool per participation. Existing toolRef assignments are rejected. A zero-day afterStage delay means one hour. In v2 only the first moment can be manual. Later moments use webhook or afterStage; independent webhook settings also let a webhook advance a timed moment. fallbackAfterMs is the optional secondary wait for a webhook-primary moment, anchored to fallbackFromStage. Legacy definitions retain their triggers.
+    """
+
+
+class AuthoringVersion2(Enum):
+    number_1 = 1
+    number_2 = 2
+
+
+class StartMode2(Enum):
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class V1CreatedJourneyResponseDto(BaseModel):
+    id: str
+    key: Optional[str] = None
+    name: Optional[str] = None
+    enabled: bool
+    version: float
+    authoringVersion: Optional[AuthoringVersion2] = None
+    startMode: Optional[StartMode2] = None
+    recipients: Optional[JourneyRecipientsDto] = None
+    routing: Optional[V1JourneyRoutingDto] = None
+    moments: list[V1JourneyMomentReadDto]
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+    webhookSecret: str
+    """
+    Legacy journey-wide signature secret, returned once. It is not the per-moment URL token or sender secret.
+    """
+
+
+class AuthoringVersion3(Enum):
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+
+    number_1 = 1
+    number_2 = 2
+
+
+class StartMode3(Enum):
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+
+    operator = 'operator'
+    response = 'response'
+    webhook = 'webhook'
+
+
+class V1UpdateJourneyBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
+    authoringVersion: Optional[AuthoringVersion3] = None
+    """
+    Use 2 for the business-form contract. Existing v1 definitions keep their execution rules.
+    """
+    startMode: Optional[StartMode3] = None
+    """
+    Who starts the first moment. Response means a saved first answer, not opening its link.
+    """
+    recipients: Optional[JourneyRecipientsDto] = None
+    name: Annotated[Optional[str], Field(examples=['Viaje de ventas'])] = None
+    enabled: Optional[bool] = None
+    moments: Optional[list[V1JourneyMomentDto]] = None
+
+
+class V1JourneySecretResponseDto(BaseModel):
+    webhookSecret: str
+    """
+    Legacy journey-wide signature secret, returned only by create or rotate. V2 url_token and sender_hmac use separate per-moment credentials.
+    """
+
+
+class V1EnrollSubjectBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
+    subjectKey: Annotated[str, Field(examples=['cliente-123'])]
+    """
+    Your own key for who is enrolled: a customer id, an order, a ticket.
+    """
+    contact: V1JourneyContactDto
+    """
+    Where to reach the subject. At least one of email or phone.
+    """
+    trackers: Optional[list[V1JourneyTrackerDto]] = None
+    metadata: Optional[dict[str, Any]] = None
+    """
+    Anything you want kept with it
+    """
+
+
+class V1JourneyEnrollmentResponseDto(BaseModel):
+    subjectKey: str
+    journeyId: str
+
+
+class V1EmitJourneyEventBodyDto(BaseModel):
+    authHeader: Optional[str] = None
+    """
+    Legacy body API key. Prefer Authorization: Bearer. Consumed by authentication and never forwarded to journey commands.
+    """
+    event: Annotated[str, Field(examples=['crm.deal.won'])]
+    subjectKey: Annotated[str, Field(examples=['cliente-123'])]
+    contact: Optional[V1JourneyContactDto] = None
+    trackers: Optional[list[V1JourneyTrackerDto]] = None
+    metadata: Optional[dict[str, Any]] = None
+
+
+class V1JourneyEventResponseDto(BaseModel):
+    journeys: float
+
+
+class JourneyEntryInfoDto(BaseModel):
+    name: Optional[str] = None
+    momentName: Optional[str] = None
+    tool: Tool
+    requiresReference: bool
+    """
+    A case reference is required when later moments start on webhooks.
+    """
+
+
+class PrepareJourneyEntryDto(BaseModel):
+    requestId: UUID
+    """
+    Stable random request ID for retrying this preparation.
+    """
+    email: Optional[str] = None
+    phone: Annotated[Optional[str], Field(examples=['56912345678'])] = None
+    reference: Annotated[Optional[str], Field(max_length=200)] = None
+
+
+class PreparedJourneyEntryDto(BaseModel):
+    companyId: str
+    tool: Tool
+    toolId: str
+    token: str
+    """
+    Opaque response capability for this prepared first tool. Keep private; preparing alone does not start the journey.
+    """
+    subjectKey: str

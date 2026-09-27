@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from ..models import WokuRecord
@@ -37,7 +38,7 @@ class Reports:
         """NPS report for one tool."""
         return self._client.request(
             "get",
-            f"/v1/reports/nps-tool/{nps_tool_id}",
+            f"/v1/reports/nps-tool/{quote(nps_tool_id, safe='')}",
             query=params,
             options=options,
         )
@@ -68,7 +69,7 @@ class AsyncReports:
         """NPS report for one tool."""
         return await self._client.request(
             "get",
-            f"/v1/reports/nps-tool/{nps_tool_id}",
+            f"/v1/reports/nps-tool/{quote(nps_tool_id, safe='')}",
             query=params,
             options=options,
         )

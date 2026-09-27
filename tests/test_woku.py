@@ -40,13 +40,13 @@ def test_trackers_create_posts_with_idempotency_key() -> None:
 
 
 @respx.mock
-def test_trackers_assign_to_woku_upserts_with_idempotency_key() -> None:
+def test_trackers_assign_to_woku_does_not_claim_unsupported_idempotency() -> None:
     route = respx.post(f"{BASE}/v1/external-trackers/wokus/w1").mock(
         return_value=httpx.Response(200, json={"name": "crm", "value": "TX-1"})
     )
     woku().trackers.assign_to_woku("w1", {"name": "crm", "value": "TX-1"})
     assert _body(route.calls.last.request) == {"name": "crm", "value": "TX-1"}
-    assert route.calls.last.request.headers.get("x-woku-idempotency-key")
+    assert route.calls.last.request.headers.get("x-woku-idempotency-key") is None
 
 
 @respx.mock

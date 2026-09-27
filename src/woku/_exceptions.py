@@ -8,6 +8,7 @@ when reporting an issue) and the parsed body.
 
 from __future__ import annotations
 
+import math
 from typing import Any, Union
 
 WokuErrorBody = Union[dict[str, Any], str, None]
@@ -18,6 +19,7 @@ class WokuError(Exception):
 
     #: Stable, machine-readable code (e.g. ``not_found``, ``rate_limited``).
     code: str | None
+    idempotency_key: str | None = None
 
     def __init__(self, message: str, *, code: str | None = None) -> None:
         super().__init__(message)
@@ -116,6 +118,10 @@ class ConflictError(WokuAPIError):
     """409 - the request conflicts with the resource state."""
 
 
+class PayloadTooLargeError(WokuAPIError):
+    """413 - the request exceeds the API media limit."""
+
+
 class UnprocessableEntityError(WokuAPIError):
     """422 - semantically invalid request."""
 
@@ -134,6 +140,7 @@ _STATUS_TO_CLASS: dict[int, type[WokuAPIError]] = {
     403: PermissionDeniedError,
     404: NotFoundError,
     409: ConflictError,
+    413: PayloadTooLargeError,
     422: UnprocessableEntityError,
     429: RateLimitError,
 }
@@ -144,6 +151,7 @@ _STATUS_TO_CODE: dict[int, str] = {
     403: "permission_denied",
     404: "not_found",
     409: "conflict",
+    413: "payload_too_large",
     422: "unprocessable_entity",
     429: "rate_limited",
 }
@@ -153,7 +161,7 @@ def _retry_after_from_body(body: WokuErrorBody) -> float | None:
     if isinstance(body, dict):
         value = body.get("retryAfter")
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
+            return float(value) if math.isfinite(value) and value >= 0 else None
     return None
 
 
@@ -174,6 +182,8 @@ def _message_from(
         detail = body.strip()
     elif isinstance(body, dict):
         message = body.get("message")
+        if isinstance(message, dict):
+            message = message.get("message")
         if isinstance(message, list):
             detail = ", ".join(str(item) for item in message)
         elif isinstance(message, str) and message:

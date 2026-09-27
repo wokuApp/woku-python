@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypedDict
+from urllib.parse import quote
 
 from .._options import RequestOptions
 from .._pagination import AsyncPage, SyncPage
@@ -43,12 +44,17 @@ class Wokus:
         self, body: CreateWokuParams, options: RequestOptions | None = None
     ) -> Woku:
         return self._client.request(
-            "post", "/v1/wokus", body=body, idempotent=True, options=options
+            "post",
+            "/v1/wokus",
+            body=body,
+            options={**(options or {}), "max_retries": 0},
         )
 
     def get(self, woku_id: str, options: RequestOptions | None = None) -> Woku:
         """Get one woku with aggregated review stats."""
-        return self._client.request("get", f"/v1/wokus/{woku_id}", options=options)
+        return self._client.request(
+            "get", f"/v1/wokus/{quote(woku_id, safe='')}", options=options
+        )
 
     def update(
         self,
@@ -57,13 +63,15 @@ class Wokus:
         options: RequestOptions | None = None,
     ) -> Woku:
         return self._client.request(
-            "patch", f"/v1/wokus/{woku_id}", body=body, options=options
+            "patch", f"/v1/wokus/{quote(woku_id, safe='')}", body=body, options=options
         )
 
     def delete(
         self, woku_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
-        return self._client.request("delete", f"/v1/wokus/{woku_id}", options=options)
+        return self._client.request(
+            "delete", f"/v1/wokus/{quote(woku_id, safe='')}", options=options
+        )
 
     def update_settings(
         self,
@@ -73,7 +81,10 @@ class Wokus:
     ) -> Woku:
         """Apply the boolean settings idempotently (closed/reviewsDisabled/...)."""
         return self._client.request(
-            "patch", f"/v1/wokus/{woku_id}/settings", body=body, options=options
+            "patch",
+            f"/v1/wokus/{quote(woku_id, safe='')}/settings",
+            body=body,
+            options=options,
         )
 
     def move(
@@ -84,7 +95,10 @@ class Wokus:
     ) -> Woku:
         """Move the woku into a folder, or to the root with ``{"folderId": None}``."""
         return self._client.request(
-            "patch", f"/v1/wokus/{woku_id}/move", body=body, options=options
+            "patch",
+            f"/v1/wokus/{quote(woku_id, safe='')}/move",
+            body=body,
+            options=options,
         )
 
     def list_reviews(
@@ -94,7 +108,9 @@ class Wokus:
         options: RequestOptions | None = None,
     ) -> SyncPage[WokuRecord]:
         """List the reviews of a woku (paginated)."""
-        return self._client.get_page(f"/v1/wokus/{woku_id}/reviews", params, options)
+        return self._client.get_page(
+            f"/v1/wokus/{quote(woku_id, safe='')}/reviews", params, options
+        )
 
     def send_invitations(
         self,
@@ -105,7 +121,7 @@ class Wokus:
         """Send a woku review invitation by email or WhatsApp (idempotent)."""
         return self._client.request(
             "post",
-            f"/v1/wokus/{woku_id}/invitations",
+            f"/v1/wokus/{quote(woku_id, safe='')}/invitations",
             body=body,
             idempotent=True,
             options=options,
@@ -119,7 +135,10 @@ class Wokus:
     ) -> WokuRecord:
         """Share a woku review link by email."""
         return self._client.request(
-            "post", f"/v1/wokus/{woku_id}/share", body=body, options=options
+            "post",
+            f"/v1/wokus/{quote(woku_id, safe='')}/share",
+            body=body,
+            options=options,
         )
 
 
@@ -140,13 +159,16 @@ class AsyncWokus:
         self, body: CreateWokuParams, options: RequestOptions | None = None
     ) -> Woku:
         return await self._client.request(
-            "post", "/v1/wokus", body=body, idempotent=True, options=options
+            "post",
+            "/v1/wokus",
+            body=body,
+            options={**(options or {}), "max_retries": 0},
         )
 
     async def get(self, woku_id: str, options: RequestOptions | None = None) -> Woku:
         """Get one woku with aggregated review stats."""
         return await self._client.request(
-            "get", f"/v1/wokus/{woku_id}", options=options
+            "get", f"/v1/wokus/{quote(woku_id, safe='')}", options=options
         )
 
     async def update(
@@ -156,14 +178,14 @@ class AsyncWokus:
         options: RequestOptions | None = None,
     ) -> Woku:
         return await self._client.request(
-            "patch", f"/v1/wokus/{woku_id}", body=body, options=options
+            "patch", f"/v1/wokus/{quote(woku_id, safe='')}", body=body, options=options
         )
 
     async def delete(
         self, woku_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
         return await self._client.request(
-            "delete", f"/v1/wokus/{woku_id}", options=options
+            "delete", f"/v1/wokus/{quote(woku_id, safe='')}", options=options
         )
 
     async def update_settings(
@@ -174,7 +196,10 @@ class AsyncWokus:
     ) -> Woku:
         """Apply the boolean settings idempotently (closed/reviewsDisabled/...)."""
         return await self._client.request(
-            "patch", f"/v1/wokus/{woku_id}/settings", body=body, options=options
+            "patch",
+            f"/v1/wokus/{quote(woku_id, safe='')}/settings",
+            body=body,
+            options=options,
         )
 
     async def move(
@@ -185,7 +210,10 @@ class AsyncWokus:
     ) -> Woku:
         """Move the woku into a folder, or to the root with ``{"folderId": None}``."""
         return await self._client.request(
-            "patch", f"/v1/wokus/{woku_id}/move", body=body, options=options
+            "patch",
+            f"/v1/wokus/{quote(woku_id, safe='')}/move",
+            body=body,
+            options=options,
         )
 
     async def list_reviews(
@@ -196,7 +224,7 @@ class AsyncWokus:
     ) -> AsyncPage[WokuRecord]:
         """List the reviews of a woku (paginated)."""
         return await self._client.get_page(
-            f"/v1/wokus/{woku_id}/reviews", params, options
+            f"/v1/wokus/{quote(woku_id, safe='')}/reviews", params, options
         )
 
     async def send_invitations(
@@ -208,7 +236,7 @@ class AsyncWokus:
         """Send a woku review invitation by email or WhatsApp (idempotent)."""
         return await self._client.request(
             "post",
-            f"/v1/wokus/{woku_id}/invitations",
+            f"/v1/wokus/{quote(woku_id, safe='')}/invitations",
             body=body,
             idempotent=True,
             options=options,
@@ -222,5 +250,8 @@ class AsyncWokus:
     ) -> WokuRecord:
         """Share a woku review link by email."""
         return await self._client.request(
-            "post", f"/v1/wokus/{woku_id}/share", body=body, options=options
+            "post",
+            f"/v1/wokus/{quote(woku_id, safe='')}/share",
+            body=body,
+            options=options,
         )
