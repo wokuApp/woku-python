@@ -8,7 +8,9 @@ pass either a typed model instance or a dict literal.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Union
+from typing import Any, Literal, TypedDict, Union
+
+from typing_extensions import NotRequired
 
 from ._generated import models as _g
 
@@ -49,3 +51,29 @@ CreateActionPlanTaskParams = Union[_g.CreateActionPlanTaskDto, JsonMapping]
 UpdateActionPlanTaskParams = Union[_g.UpdateActionPlanTaskDto, JsonMapping]
 ReorderActionPlanTasksParams = Union[_g.ReorderActionPlanTasksDto, JsonMapping]
 PostPlanReplyParams = Union[_g.PostPlanReplyBodyDTO, JsonMapping]
+
+
+class CustomUpsertUpdateConfig(TypedDict):
+    """Receiver explicitly upserts by stable externalId on the create endpoint."""
+
+    mode: Literal["upsert"]
+    responseIdPath: NotRequired[str]
+
+
+class CustomRemoteIdUpdateConfig(TypedDict):
+    """Update the scalar create-response ID at a same-origin URL."""
+
+    mode: Literal["remote-id"]
+    url: str
+    responseIdPath: str
+    method: NotRequired[Literal["PUT", "PATCH"]]
+
+
+CustomTicketUpdateConfig = Union[CustomUpsertUpdateConfig, CustomRemoteIdUpdateConfig]
+
+
+class CustomTicketDestinationConfig(TypedDict):
+    url: str
+    method: NotRequired[Literal["POST", "PUT"]]
+    headers: NotRequired[dict[str, str]]
+    update: NotRequired[CustomTicketUpdateConfig]

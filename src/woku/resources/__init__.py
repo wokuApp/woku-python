@@ -11,6 +11,7 @@ from .action_plans import (
 from .company import AsyncCompany, Company
 from .dispatches import AsyncDispatches, Dispatches
 from .flows import AsyncFlows, Flows
+from .follow_ups import AsyncFollowUps, FollowUps
 from .forms import AsyncForms, Forms
 from .journeys import AsyncJourneys, Journeys
 from .quarantines import AsyncQuarantines, Quarantines
@@ -45,6 +46,7 @@ __all__ = [
     "AsyncCsatTools",
     "AsyncDispatches",
     "AsyncFlows",
+    "AsyncFollowUps",
     "AsyncForms",
     "AsyncNps",
     "AsyncNpsTools",
@@ -61,6 +63,7 @@ __all__ = [
     "CsatTools",
     "Dispatches",
     "Flows",
+    "FollowUps",
     "Forms",
     "Nps",
     "NpsTools",

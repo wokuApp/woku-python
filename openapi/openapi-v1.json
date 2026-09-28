@@ -1,6 +1,47 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/v1/follow-ups/{id}": {
+      "get": {
+        "description": "Management secret key required. Capture publishable keys cannot read conversations.",
+        "operationId": "V1FollowUpsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "ObjectId",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowUpEnvelopeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Follow-up not found in this company"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a company follow-up conversation",
+        "tags": [
+          "v1 - follow-ups"
+        ]
+      }
+    },
     "/v1/health": {
       "get": {
         "description": "Returns { ok: true } when the v1 namespace is reachable. Unauthenticated.",
@@ -4764,7 +4805,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated tickets"
+            "description": "Paginated tickets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTicketsPageDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Validation error",
@@ -4854,7 +4902,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Ticket"
+            "description": "Ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTicketDto"
+                }
+              }
+            }
           },
           "404": {
             "description": "Ticket not found"
@@ -4895,7 +4950,14 @@
         },
         "responses": {
           "200": {
-            "description": "Ticket updated"
+            "description": "Ticket updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTicketDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Validation error",
@@ -6291,6 +6353,173 @@
           "description"
         ]
       },
+      "FollowUpOriginDto": {
+        "type": "object",
+        "properties": {
+          "tool": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "nps",
+              "csat",
+              "ces"
+            ]
+          },
+          "refId": {
+            "type": "string"
+          },
+          "instrumentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "refId"
+        ]
+      },
+      "FollowUpMessageDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "client"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responseType": {
+            "type": "string"
+          },
+          "selectedOption": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content",
+          "timestamp"
+        ]
+      },
+      "FollowUpConversationDto": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/FollowUpOriginDto"
+          },
+          "wokuId": {
+            "type": "string"
+          },
+          "reviewId": {
+            "type": "string"
+          },
+          "reviewType": {
+            "type": "string",
+            "enum": [
+              "textnote",
+              "voicemail"
+            ]
+          },
+          "originalReview": {
+            "type": "string"
+          },
+          "originalQualification": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "initial_sent",
+              "awaiting_detail",
+              "closing",
+              "completed",
+              "timed_out",
+              "cancelled"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "whatsapp"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Stable reason code for exclusion, failure or uncertain delivery. Provider error details are never exposed."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowUpMessageDto"
+            }
+          },
+          "executiveSummary": {
+            "type": "string"
+          },
+          "actionItems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sentiment": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summaryVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "companyId",
+          "origin",
+          "reviewType",
+          "originalReview",
+          "state",
+          "channel",
+          "messages",
+          "summaryVersion"
+        ]
+      },
+      "FollowUpEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FollowUpConversationDto"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
       "CreateExternalTrackerDefinitionDTO": {
         "type": "object",
         "properties": {
@@ -6433,6 +6662,69 @@
           "value"
         ]
       },
+      "CustomTicketDestinationUpdateDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "upsert",
+              "remote-id"
+            ],
+            "description": "upsert explicitly reuses the creation URL/method with a stable externalId. remote-id updates the previously created remote resource."
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "remote-id only: same-origin URL containing {{remoteId}}; credentials and fragments are forbidden."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "PUT",
+              "PATCH"
+            ],
+            "default": "PATCH",
+            "description": "remote-id only."
+          },
+          "responseIdPath": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Dot-separated path to the ID in the creation response, required for remote-id. Prototype keys are forbidden."
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "CustomTicketDestinationConfigDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "POST",
+              "PUT"
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "update": {
+            "$ref": "#/components/schemas/CustomTicketDestinationUpdateDto"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
       "TicketRoutingConditionDto": {
         "type": "object",
         "properties": {
@@ -6489,9 +6781,17 @@
             "maxLength": 120
           },
           "config": {
-            "type": "object",
-            "description": "Non-secret provider config (validated per kind).",
-            "additionalProperties": true
+            "description": "Kind-specific destination configuration. Custom update is optional and explicit; omission never causes a second create.",
+            "additionalProperties": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CustomTicketDestinationConfigDto"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ]
           },
           "credentials": {
             "type": "object",
@@ -6539,8 +6839,17 @@
             "maxLength": 120
           },
           "config": {
-            "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CustomTicketDestinationConfigDto"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ],
+            "description": "Kind-specific configuration including explicit custom update capability."
           },
           "credentials": {
             "type": "object",
@@ -6918,6 +7227,19 @@
       "V1CreateTextnoteBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "dispatchToken": {
             "type": "string",
             "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
@@ -6959,6 +7281,19 @@
       "V1CreateVoicemailBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "dispatchToken": {
             "type": "string",
             "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
@@ -7087,6 +7422,19 @@
       "V1CreateNpsBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "score": {
             "type": "number",
             "description": "NPS score 0-10 (0-6 detractor, 7-8 passive, 9-10 promoter)",
@@ -7146,6 +7494,19 @@
       "V1CreateCsatBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "score": {
             "type": "number",
             "description": "CSAT satisfaction score 1-5",
@@ -7201,6 +7562,19 @@
       "V1CreateCesBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "score": {
             "type": "number",
             "description": "CES effort score 1-5",
@@ -7290,6 +7664,19 @@
       "V1CaptureBodyDto": {
         "type": "object",
         "properties": {
+          "collectionKind": {
+            "type": "string",
+            "enum": [
+              "standalone",
+              "flow"
+            ],
+            "description": "Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up."
+          },
+          "flowId": {
+            "type": "string",
+            "format": "ObjectId",
+            "description": "Required for flow captures; validated against the company and instrument."
+          },
           "dispatchToken": {
             "type": "string",
             "description": "Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.",
@@ -8025,6 +8412,282 @@
             }
           }
         }
+      },
+      "PublicTicketOriginDto": {
+        "type": "object",
+        "properties": {
+          "tool": {
+            "type": "string",
+            "enum": [
+              "woku",
+              "nps",
+              "form",
+              "csat",
+              "ces"
+            ]
+          },
+          "refId": {
+            "type": "string"
+          },
+          "instrumentId": {
+            "type": "string"
+          },
+          "instrumentName": {
+            "type": "string"
+          },
+          "trackers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "trackerId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "tool",
+          "refId"
+        ]
+      },
+      "TicketFollowUpDto": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "not_applicable",
+              "pending",
+              "initial_sent",
+              "awaiting_detail",
+              "closing",
+              "completed",
+              "timed_out",
+              "cancelled"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "availableSummaryVersion": {
+            "type": "number"
+          },
+          "enrichmentState": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "applied",
+              "failed",
+              "skipped"
+            ],
+            "description": "Current result of applying follow-up evidence to the ticket."
+          },
+          "enrichmentReason": {
+            "type": "string",
+            "description": "Machine-readable reason for the enrichment result, without provider details or credentials."
+          },
+          "appliedSummaryVersion": {
+            "type": "number",
+            "description": "Last summary version successfully applied to this ticket. Conversation completion alone does not imply enrichment."
+          },
+          "enrichedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "PublicTicketDto": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "destinationId": {
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/PublicTicketOriginDto"
+          },
+          "contentVersion": {
+            "type": "number",
+            "minimum": 1,
+            "default": 1,
+            "description": "Monotonic version of generated ticket content."
+          },
+          "followUp": {
+            "$ref": "#/components/schemas/TicketFollowUpDto"
+          },
+          "score": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "display": {
+                "type": "string"
+              }
+            }
+          },
+          "aiSummary": {
+            "type": "string"
+          },
+          "aiCategory": {
+            "type": "string"
+          },
+          "caseDescription": {
+            "type": "string"
+          },
+          "historyHighlights": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "whatCustomerWants": {
+            "type": "string"
+          },
+          "suggestedResolution": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "churnRisk": {
+            "type": "string"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "historySnapshot": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "sentiment": {
+            "type": "string"
+          },
+          "generatedByAI": {
+            "type": "boolean"
+          },
+          "customerComment": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "isAudio": {
+                "type": "boolean"
+              },
+              "audioUrl": {
+                "type": "string"
+              },
+              "transcription": {
+                "type": "string"
+              }
+            }
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "clientId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              }
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "title",
+          "severity",
+          "origin",
+          "contentVersion"
+        ]
+      },
+      "PublicTicketsPageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTicketDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit"
+        ]
       },
       "UpdateTicketBodyDTO": {
         "type": "object",

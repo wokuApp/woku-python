@@ -234,6 +234,8 @@ class PreparedJourneyEntryDto(TypedDict):
 
 
 class V1CaptureBodyDto(TypedDict):
+    collectionKind: NotRequired[Literal['standalone', 'flow']]
+    flowId: NotRequired[str]
     dispatchToken: NotRequired[str]
     id: NotRequired[str]
     kind: Literal['woku', 'nps', 'csat', 'ces']

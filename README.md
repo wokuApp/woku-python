@@ -31,6 +31,70 @@ support tickets, delivery tracking and survey sends over the public `/v1` API.
 
 Version `0.3.0` adds customer journeys and multipart media upload to both clients.
 
+## Proposed follow-up support (unreleased 0.4.0)
+
+The next release adds `woku.follow_ups.get(id)` and typed `Ticket.followUp`,
+`Ticket.contentVersion` and conversation origin, for both sync and async
+clients. Deploy the matching API before using these methods. They read
+`GET /v1/follow-ups/:id` with your management secret and return the conversation
+from the API's `data` envelope.
+
+```python
+ticket = woku.tickets.get("ticket_123")
+follow_up = ticket.get("followUp", {})
+conversation_id = follow_up.get("conversationId")
+if conversation_id:
+    conversation = woku.follow_ups.get(conversation_id)
+    print(conversation["origin"], conversation["messages"])
+enriched = follow_up.get("appliedSummaryVersion", 0) >= 1
+```
+
+With `AsyncWoku`, await `client.tickets.get(id)` and
+`client.follow_ups.get(conversation_id)`. `completed` means the conversation
+ended; `appliedSummaryVersion` indicates that its evidence reached the ticket.
+`availableSummaryVersion` can advance before it is applied. Historical records
+may omit these fields. The read-only detail includes original feedback,
+messages and available analysis without response tokens or transport
+credentials. Ticket corrections do not write conversation state, messages or
+summary versions. New types are available from `woku` and `woku.models`.
+
+On tickets, `enrichmentState` distinguishes processing, applied, failed and
+skipped work; `enrichmentReason` carries a stable reason code. Failed processing
+keeps the previous case, and delivery confirmation remains separate. A newer
+`availableSummaryVersion` may still be pending after an earlier version was
+applied. Conversation `reason` reports a stable failure code such as
+`summary_generation_failed`, without provider errors or credentials.
+
+### Explicit custom case updates (proposed)
+
+`CustomTicketDestinationConfig` adds `update` to the existing custom HTTP
+destination. `upsert` uses the creation endpoint only when the receiver updates
+by stable `externalId`. The rendered body must keep `event: ticket.updated`
+and the original identity, either top-level `externalId` in a custom template
+or `data.case.externalId` in the canonical envelope. Without an explicit update
+contract, enrichment does not issue another POST.
+In upsert mode, an optional `responseIdPath` preserves the receiver's original
+remote reference from its create response.
+
+```python
+from woku import CustomTicketDestinationConfig
+
+config: CustomTicketDestinationConfig = {
+    "url": "https://sac.example.com/tickets",
+    "update": {
+        "mode": "remote-id",
+        "url": "https://sac.example.com/tickets/{{remoteId}}",
+        "method": "PATCH",
+        "responseIdPath": "result.id",
+    },
+}
+```
+
+`remote-id` extracts a scalar ID from the create response. Its update URL must
+use the same origin and contain `{{remoteId}}`; use PUT or PATCH (default).
+URLs cannot contain credentials or fragments. A safe dotted `responseIdPath`
+is required. Existing authentication stays in the destination's `credentials`.
+
 ## Install
 
 ```bash

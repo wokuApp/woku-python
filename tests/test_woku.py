@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from typing import Any
 
 import httpx
+import pytest
 import respx
 
-from woku import AsyncWoku, Woku
+from woku import AsyncWoku, PermissionDeniedError, Woku
 
 BASE = "http://api.test"
 
@@ -219,3 +222,108 @@ async def test_async_reply_sends_text_and_confirm() -> None:
     async with async_woku() as w:
         await w.action_plans.reply("p1", "hi")
     assert _body(route.calls.last.request) == {"text": "hi", "confirm": True}
+
+
+@respx.mock
+def test_follow_ups_reads_safe_conversation_with_encoded_id_and_options() -> None:
+    from woku._generated.models import FollowUpConversationDto
+
+    conversation = {
+        "_id": "fu /1",
+        "companyId": "c1",
+        "origin": {"tool": "nps", "refId": "n1"},
+        "reviewType": "textnote",
+        "originalReview": "Slow",
+        "state": "completed",
+        "reason": "summary_generation_failed",
+        "channel": "email",
+        "messages": [
+            {
+                "role": "client",
+                "content": "Still waiting",
+                "timestamp": "2026-09-27T12:00:00Z",
+            }
+        ],
+        "summaryVersion": 1,
+    }
+    route = respx.get(f"{BASE}/v1/follow-ups/fu%20%2F1").mock(
+        return_value=httpx.Response(200, json={"data": conversation})
+    )
+    out = woku().follow_ups.get("fu /1", {"headers": {"x-request-context": "support"}})
+    assert out == conversation
+    assert out["reason"] == "summary_generation_failed"
+    assert (
+        FollowUpConversationDto.model_validate(out).model_dump()["reason"]
+        == "summary_generation_failed"
+    )
+    assert route.calls.last.request.url.raw_path == b"/v1/follow-ups/fu%20%2F1"
+    assert route.calls.last.request.headers["authorization"] == "Bearer sk_test"
+    assert route.calls.last.request.headers["x-request-context"] == "support"
+
+
+@respx.mock
+async def test_async_follow_ups_reads_safe_conversation() -> None:
+    conversation = {
+        "_id": "f1",
+        "origin": {"tool": "ces", "refId": "e1"},
+        "messages": [],
+        "state": "pending",
+    }
+    respx.get(f"{BASE}/v1/follow-ups/f1").mock(
+        return_value=httpx.Response(200, json={"data": conversation})
+    )
+    async with async_woku() as client:
+        assert await client.follow_ups.get("f1") == conversation
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@respx.mock
+async def test_follow_ups_propagates_forbidden_without_returning_data(
+    asynchronous: bool,
+) -> None:
+    respx.get(f"{BASE}/v1/follow-ups/other-company").mock(
+        return_value=httpx.Response(403, json={"message": "Unavailable"})
+    )
+    if asynchronous:
+        async with async_woku() as client:
+            with pytest.raises(PermissionDeniedError):
+                await client.follow_ups.get("other-company")
+    else:
+        with woku() as client:
+            with pytest.raises(PermissionDeniedError):
+                client.follow_ups.get("other-company")
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    json.loads((Path(__file__).parent / "fixtures/follow-up.json").read_text()),
+)
+@respx.mock
+async def test_follow_up_semantics_preserved_by_sync_async_ticket_reads(
+    fixture: dict[str, Any],
+) -> None:
+    ticket = fixture["ticket"]
+    respx.get(f"{BASE}/v1/tickets/{ticket['_id']}").mock(
+        return_value=httpx.Response(200, json=ticket)
+    )
+    respx.get(f"{BASE}/v1/tickets").mock(
+        return_value=httpx.Response(
+            200, json={"data": [ticket], "page": 1, "limit": 10, "total": 1}
+        )
+    )
+    with woku() as client:
+        detail = client.tickets.get(ticket["_id"])
+        page = client.tickets.list()
+        assert detail == ticket
+        assert page.data == [ticket]
+        assert (
+            detail.get("followUp", {}).get("appliedSummaryVersion", 0) >= 1
+        ) == fixture["enriched"]
+    async with async_woku() as client:
+        detail = await client.tickets.get(ticket["_id"])
+        page = await client.tickets.list()
+        assert detail == ticket
+        assert page.data == [ticket]
+        assert (
+            detail.get("followUp", {}).get("appliedSummaryVersion", 0) >= 1
+        ) == fixture["enriched"]

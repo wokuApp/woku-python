@@ -103,6 +103,91 @@ class InvitationsResult(TypedDict, total=False):
     rejectedRecipients: list[RejectedRecipient]
 
 
+FollowUpState = Literal[
+    "pending",
+    "initial_sent",
+    "awaiting_detail",
+    "closing",
+    "completed",
+    "timed_out",
+    "cancelled",
+]
+
+
+class FollowUpOrigin(TypedDict, total=False):
+    tool: Literal["woku", "nps", "csat", "ces"]
+    refId: str
+    instrumentId: str
+
+
+class FollowUp(TypedDict, total=False):
+    """Lightweight follow-up state, separate from ticket evidence application."""
+
+    conversationId: str
+    state: Literal[
+        "not_applicable",
+        "pending",
+        "initial_sent",
+        "awaiting_detail",
+        "closing",
+        "completed",
+        "timed_out",
+        "cancelled",
+    ]
+    reason: str
+    availableSummaryVersion: int
+    appliedSummaryVersion: int
+    enrichedAt: str
+    enrichmentState: Literal["processing", "applied", "failed", "skipped"]
+    enrichmentReason: str
+
+
+class FollowUpMessage(TypedDict, total=False):
+    role: Literal["agent", "client"]
+    content: str
+    timestamp: str
+    responseType: str
+    selectedOption: str
+
+
+class FollowUpConversation(TypedDict, total=False):
+    """Authorized conversation without response tokens or transport credentials."""
+
+    _id: str
+    companyId: str
+    origin: FollowUpOrigin
+    wokuId: str
+    reviewId: str
+    reviewType: Literal["textnote", "voicemail"]
+    originalReview: str
+    originalQualification: int
+    state: FollowUpState
+    channel: Channel
+    reason: str
+    messages: list[FollowUpMessage]
+    executiveSummary: str
+    actionItems: list[str]
+    sentiment: str
+    topics: list[str]
+    summaryVersion: int
+    createdAt: str
+    updatedAt: str
+
+
+class TicketOriginTracker(TypedDict, total=False):
+    trackerId: str
+    name: str
+    value: str
+
+
+class TicketOrigin(TypedDict, total=False):
+    tool: Literal["woku", "nps", "csat", "ces", "form"]
+    refId: str
+    instrumentId: str
+    instrumentName: str
+    trackers: list[TicketOriginTracker]
+
+
 class Ticket(TypedDict, total=False):
     """Support ticket (curated allow-list)."""
 
@@ -111,7 +196,9 @@ class Ticket(TypedDict, total=False):
     title: str
     severity: Severity
     destinationId: str
-    origin: WokuRecord
+    origin: TicketOrigin
+    followUp: FollowUp
+    contentVersion: int
     score: WokuRecord
     aiSummary: str
     aiCategory: str
