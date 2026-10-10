@@ -131,7 +131,7 @@ class Role(Enum):
 
 class Phase(Enum):
     """
-    survey: the survey exchange that preceded the follow-up in the same WhatsApp thread (prelude). follow_up: the follow-up itself.
+    survey: the prelude, what the customer said in the survey before the follow-up. On the survey_thread line it is the WhatsApp survey exchange; on every other line (follow_up_number, email) it is the original comment as a client message. follow_up: the follow-up itself. Every line may start with the prelude, so messages[0] can be a client message; filter phase === 'follow_up' to read only the follow-up.
     """
 
     survey = 'survey'
@@ -147,7 +147,7 @@ class FollowUpMessageDto(BaseModel):
     timestamp: datetime
     phase: Phase
     """
-    survey: the survey exchange that preceded the follow-up in the same WhatsApp thread (prelude). follow_up: the follow-up itself.
+    survey: the prelude, what the customer said in the survey before the follow-up. On the survey_thread line it is the WhatsApp survey exchange; on every other line (follow_up_number, email) it is the original comment as a client message. follow_up: the follow-up itself. Every line may start with the prelude, so messages[0] can be a client message; filter phase === 'follow_up' to read only the follow-up.
     """
     responseType: Optional[str] = None
     selectedOption: Optional[str] = None
@@ -223,6 +223,9 @@ class FollowUpConversationDto(BaseModel):
     Stable reason code for exclusion, failure or uncertain delivery. Provider error details are never exposed.
     """
     messages: list[FollowUpMessageDto]
+    """
+    Messages in order: the survey prelude (phase survey) first, then the follow-up (phase follow_up). Filter phase === 'follow_up' for the follow-up messages only.
+    """
     executiveSummary: Optional[str] = None
     actionItems: Optional[list[str]] = None
     sentiment: Optional[str] = None
