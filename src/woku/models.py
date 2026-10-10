@@ -142,12 +142,55 @@ class FollowUp(TypedDict, total=False):
     enrichmentReason: str
 
 
+#: WhatsApp line: ``survey_thread`` (the agent continued the survey chat on the
+#: survey number) or ``follow_up_number`` (dedicated number). Absent for email.
+FollowUpLine = Literal["survey_thread", "follow_up_number"]
+
+#: ``survey``: the survey exchange before the follow-up (prelude).
+#: ``follow_up``: the follow-up itself.
+FollowUpMessagePhase = Literal["survey", "follow_up"]
+
+
+class FollowUpAttachment(TypedDict, total=False):
+    """A file the customer sent.
+
+    ``adminUrl`` opens it in the woku admin after login and a company check;
+    the file itself and storage URLs are never returned. ``text`` (transcript
+    or description) is untrusted customer content.
+    """
+
+    index: int
+    label: str
+    kind: Literal["image", "audio", "document", "unsupported"]
+    fileId: str
+    readableFileId: str
+    filename: str
+    mimeType: str
+    status: Literal["pending", "ready", "failed", "unsupported"]
+    text: str
+    failureReason: str
+    adminUrl: str
+
+
+class FollowUpCitation(TypedDict, total=False):
+    """A file the executive summary cites as "(Archivo N)"."""
+
+    index: int
+    label: str
+    fileId: str
+    supports: str
+    adminUrl: str
+
+
 class FollowUpMessage(TypedDict, total=False):
     role: Literal["agent", "client"]
+    #: May be empty when the message only has files.
     content: str
     timestamp: str
+    phase: FollowUpMessagePhase
     responseType: str
     selectedOption: str
+    attachments: list[FollowUpAttachment]
 
 
 class FollowUpConversation(TypedDict, total=False):
@@ -163,12 +206,14 @@ class FollowUpConversation(TypedDict, total=False):
     originalQualification: int
     state: FollowUpState
     channel: Channel
+    line: FollowUpLine
     reason: str
     messages: list[FollowUpMessage]
     executiveSummary: str
     actionItems: list[str]
     sentiment: str
     topics: list[str]
+    summaryCitations: list[FollowUpCitation]
     summaryVersion: int
     createdAt: str
     updatedAt: str

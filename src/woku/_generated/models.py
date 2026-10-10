@@ -75,17 +75,103 @@ class FollowUpOriginDto(BaseModel):
     instrumentId: Optional[str] = None
 
 
+class Kind(Enum):
+    image = 'image'
+    audio = 'audio'
+    document = 'document'
+    unsupported = 'unsupported'
+
+
+class Status(Enum):
+    pending = 'pending'
+    ready = 'ready'
+    failed = 'failed'
+    unsupported = 'unsupported'
+
+
+class FollowUpAttachmentDto(BaseModel):
+    index: float
+    """
+    Stable number of the file in the conversation (survey prelude included).
+    """
+    label: str
+    """
+    Display label in the conversation language, e.g. "Archivo 2" or "File 2". Summaries cite files by this label.
+    """
+    kind: Kind
+    fileId: Optional[str] = None
+    """
+    Private original file (evidence). Absent while pending or when nothing was stored (location, contacts, over the limits).
+    """
+    readableFileId: Optional[str] = None
+    """
+    Converted copy the model read, when there was a conversion.
+    """
+    filename: str
+    mimeType: str
+    status: Status
+    text: Optional[str] = None
+    """
+    Transcript (audio) or description (image, document) generated from the file. Untrusted customer content.
+    """
+    failureReason: Optional[str] = None
+    """
+    Stable reason code when failed or unsupported (e.g. video, location, message_limit, conversation_limit, read_failed).
+    """
+    adminUrl: Optional[str] = None
+    """
+    Admin page that opens this file after login and a company check (signed, short-lived download). Never a storage URL.
+    """
+
+
 class Role(Enum):
     agent = 'agent'
     client = 'client'
 
 
+class Phase(Enum):
+    """
+    survey: the survey exchange that preceded the follow-up in the same WhatsApp thread (prelude). follow_up: the follow-up itself.
+    """
+
+    survey = 'survey'
+    follow_up = 'follow_up'
+
+
 class FollowUpMessageDto(BaseModel):
     role: Role
     content: str
+    """
+    Message text. May be empty when the message only has files.
+    """
     timestamp: datetime
+    phase: Phase
+    """
+    survey: the survey exchange that preceded the follow-up in the same WhatsApp thread (prelude). follow_up: the follow-up itself.
+    """
     responseType: Optional[str] = None
     selectedOption: Optional[str] = None
+    attachments: Optional[list[FollowUpAttachmentDto]] = None
+    """
+    Files the customer sent with this message.
+    """
+
+
+class FollowUpCitationDto(BaseModel):
+    index: float
+    label: str
+    """
+    Label of the cited file, e.g. "Archivo 2".
+    """
+    fileId: Optional[str] = None
+    supports: str
+    """
+    What the file supports in the summary.
+    """
+    adminUrl: Optional[str] = None
+    """
+    Admin page that opens this file after login and a company check (signed, short-lived download). Never a storage URL.
+    """
 
 
 class ReviewType(Enum):
@@ -108,6 +194,15 @@ class Channel(Enum):
     whatsapp = 'whatsapp'
 
 
+class Line(Enum):
+    """
+    WhatsApp line. survey_thread: the agent continues the survey conversation on the survey number. follow_up_number: the agent writes from the dedicated follow-up number. Absent for email.
+    """
+
+    survey_thread = 'survey_thread'
+    follow_up_number = 'follow_up_number'
+
+
 class FollowUpConversationDto(BaseModel):
     field_id: Annotated[str, Field(alias='_id')]
     companyId: str
@@ -119,6 +214,10 @@ class FollowUpConversationDto(BaseModel):
     originalQualification: Optional[float] = None
     state: State
     channel: Channel
+    line: Optional[Line] = None
+    """
+    WhatsApp line. survey_thread: the agent continues the survey conversation on the survey number. follow_up_number: the agent writes from the dedicated follow-up number. Absent for email.
+    """
     reason: Optional[str] = None
     """
     Stable reason code for exclusion, failure or uncertain delivery. Provider error details are never exposed.
@@ -128,6 +227,10 @@ class FollowUpConversationDto(BaseModel):
     actionItems: Optional[list[str]] = None
     sentiment: Optional[str] = None
     topics: Optional[list[str]] = None
+    summaryCitations: Optional[list[FollowUpCitationDto]] = None
+    """
+    Files the summary cites; the summary text mentions them as "(Archivo N)".
+    """
     summaryVersion: float
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
@@ -308,7 +411,7 @@ class TicketDestinationTemplateDto(BaseModel):
     """
 
 
-class Kind(Enum):
+class Kind1(Enum):
     zendesk = 'zendesk'
     custom = 'custom'
     email = 'email'
@@ -330,7 +433,7 @@ class V1CreateTicketDestinationDto(BaseModel):
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
-    kind: Kind
+    kind: Kind1
 
 
 class V1UpdateTicketDestinationDto(BaseModel):
@@ -350,7 +453,7 @@ class V1UpdateTicketDestinationDto(BaseModel):
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
     enabled: Optional[bool] = None
-    kind: Optional[Kind] = None
+    kind: Optional[Kind1] = None
 
 
 class TestTicketDestinationBodyDTO(BaseModel):
@@ -470,7 +573,7 @@ class ReorderActionPlanTasksDto(BaseModel):
     """
 
 
-class Status(Enum):
+class Status1(Enum):
     todo = 'todo'
     in_progress = 'in_progress'
     done = 'done'
@@ -481,7 +584,7 @@ class UpdateActionPlanTaskDto(BaseModel):
     """
     New task text.
     """
-    status: Optional[Status] = None
+    status: Optional[Status1] = None
     assigneeId: Optional[str] = None
     """
     Group member responsible; null/"" clears the assignee.
@@ -879,7 +982,7 @@ class V1CaptureRespondentDto(BaseModel):
     """
 
 
-class Kind2(Enum):
+class Kind3(Enum):
     woku = 'woku'
     nps = 'nps'
     csat = 'csat'
@@ -912,7 +1015,7 @@ class V1CaptureBodyDto(BaseModel):
     """
     Client-generated idempotency id
     """
-    kind: Annotated[Kind2, Field(examples=['woku'])]
+    kind: Annotated[Kind3, Field(examples=['woku'])]
     language: Optional[Language1] = None
     """
     Spoken language. Required when the capture includes an audio file.
@@ -937,7 +1040,7 @@ class V1CaptureBodyDto(BaseModel):
     respondent: Optional[V1CaptureRespondentDto] = None
 
 
-class Status1(Enum):
+class Status2(Enum):
     accepted = 'accepted'
 
 
@@ -946,12 +1049,12 @@ class V1CaptureResultDto(BaseModel):
     """
     Client submission id, echoed without replacing the server id.
     """
-    kind: Kind2
+    kind: Kind3
     remoteId: Optional[str] = None
     """
     Server id of the created feedback resource.
     """
-    status: Status1
+    status: Status2
 
 
 class Channel1(Enum):
@@ -1519,7 +1622,7 @@ class V1JourneyPendingMomentDto(BaseModel):
     name: Optional[str] = None
 
 
-class Status2(Enum):
+class Status3(Enum):
     pending = 'pending'
     active = 'active'
     sent = 'sent'
@@ -1553,7 +1656,7 @@ class ActivationSource(Enum):
 class V1JourneyMomentProgressDto(BaseModel):
     key: str
     name: str
-    status: Status2
+    status: Status3
     toolId: Optional[str] = None
     toolType: Optional[ToolType] = None
     toolScope: Optional[ToolScope] = None

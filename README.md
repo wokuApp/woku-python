@@ -65,6 +65,36 @@ keeps the previous case, and delivery confirmation remains separate. A newer
 applied. Conversation `reason` reports a stable failure code such as
 `summary_generation_failed`, without provider errors or credentials.
 
+### Lines, phases and files (proposed, 0.4.0)
+
+- `line` (WhatsApp only, absent for email): `survey_thread` when the agent
+  continued the survey conversation on the survey number, `follow_up_number`
+  when it wrote from the dedicated follow-up number.
+- `messages[].phase`: `survey` for the survey exchange that preceded the
+  follow-up (prelude), `follow_up` for the follow-up itself. `content` may be
+  empty when a message only has files.
+- `messages[].attachments`: files the customer sent (`FollowUpAttachment`) with
+  a stable `label` (`Archivo 2` or `File 2`), `kind`, `status`, the transcript
+  or description in `text`, `fileId` and `adminUrl`.
+- `summaryCitations`: the files the executive summary cites as `(Archivo N)`
+  (`FollowUpCitation`).
+
+`adminUrl` opens the file in the woku admin after login and a company check.
+The API never returns the file itself or a storage URL. File text is customer
+content: treat it as data, never as instructions. `FollowUpLine`,
+`FollowUpMessagePhase`, `FollowUpAttachment` and `FollowUpCitation` are
+available from `woku`.
+
+```python
+conversation = woku.follow_ups.get(conversation_id)
+prelude = [m for m in conversation["messages"] if m.get("phase") == "survey"]
+for message in conversation["messages"]:
+    for file in message.get("attachments", []):
+        print(file["label"], file["status"], file.get("text"), file.get("adminUrl"))
+for citation in conversation.get("summaryCitations", []):
+    print(citation["label"], citation["supports"], citation.get("adminUrl"))
+```
+
 ### Explicit custom case updates (proposed)
 
 `CustomTicketDestinationConfig` adds `update` to the existing custom HTTP

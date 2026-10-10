@@ -8,7 +8,16 @@ import httpx
 import pytest
 import respx
 
-from woku import AsyncWoku, PermissionDeniedError, Woku
+from woku import (
+    AsyncWoku,
+    FollowUpAttachment,
+    FollowUpCitation,
+    FollowUpConversation,
+    FollowUpLine,
+    FollowUpMessagePhase,
+    PermissionDeniedError,
+    Woku,
+)
 
 BASE = "http://api.test"
 
@@ -242,6 +251,7 @@ def test_follow_ups_reads_safe_conversation_with_encoded_id_and_options() -> Non
                 "role": "client",
                 "content": "Still waiting",
                 "timestamp": "2026-09-27T12:00:00Z",
+                "phase": "follow_up",
             }
         ],
         "summaryVersion": 1,
@@ -259,6 +269,98 @@ def test_follow_ups_reads_safe_conversation_with_encoded_id_and_options() -> Non
     assert route.calls.last.request.url.raw_path == b"/v1/follow-ups/fu%20%2F1"
     assert route.calls.last.request.headers["authorization"] == "Bearer sk_test"
     assert route.calls.last.request.headers["x-request-context"] == "support"
+
+
+ADMIN_URL = "https://admin.woku.app/companies/c1/follow-ups/fu1/files/f1"
+
+
+def _hybrid_conversation() -> FollowUpConversation:
+    attachment: FollowUpAttachment = {
+        "index": 1,
+        "label": "Archivo 1",
+        "kind": "audio",
+        "fileId": "f1",
+        "filename": "audio",
+        "mimeType": "audio/ogg",
+        "status": "ready",
+        "text": "Llegó roto",
+        "adminUrl": ADMIN_URL,
+    }
+    citation: FollowUpCitation = {
+        "index": 1,
+        "label": "Archivo 1",
+        "fileId": "f1",
+        "supports": "Daño del envío",
+        "adminUrl": ADMIN_URL,
+    }
+    line: FollowUpLine = "survey_thread"
+    phase: FollowUpMessagePhase = "survey"
+    return {
+        "_id": "fu1",
+        "companyId": "c1",
+        "origin": {"tool": "csat", "refId": "r1"},
+        "reviewType": "voicemail",
+        "originalReview": "Llegó roto",
+        "state": "completed",
+        "channel": "whatsapp",
+        "line": line,
+        "messages": [
+            {
+                "role": "client",
+                "content": "",
+                "timestamp": "2026-10-09T12:00:00Z",
+                "phase": phase,
+                "attachments": [attachment],
+            },
+            {
+                "role": "client",
+                "content": "",
+                "timestamp": "2026-10-09T12:01:00Z",
+                "phase": "follow_up",
+                "attachments": [
+                    {
+                        "index": 2,
+                        "label": "Archivo 2",
+                        "kind": "unsupported",
+                        "filename": "video",
+                        "mimeType": "video/mp4",
+                        "status": "unsupported",
+                        "failureReason": "video",
+                    }
+                ],
+            },
+        ],
+        "executiveSummary": "La caja llegó rota (Archivo 1).",
+        "summaryCitations": [citation],
+        "summaryVersion": 1,
+    }
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@respx.mock
+async def test_follow_ups_expose_line_phase_files_and_citations(
+    asynchronous: bool,
+) -> None:
+    from woku._generated.models import FollowUpConversationDto
+
+    conversation = _hybrid_conversation()
+    respx.get(f"{BASE}/v1/follow-ups/fu1").mock(
+        return_value=httpx.Response(200, json={"data": conversation})
+    )
+    if asynchronous:
+        async with async_woku() as client:
+            out = await client.follow_ups.get("fu1")
+    else:
+        out = woku().follow_ups.get("fu1")
+    assert out == conversation
+    assert out["line"] == "survey_thread"
+    assert [m["phase"] for m in out["messages"]] == ["survey", "follow_up"]
+    assert out["messages"][0]["attachments"][0]["adminUrl"] == ADMIN_URL
+    assert out["summaryCitations"][0]["adminUrl"] == ADMIN_URL
+    dto = FollowUpConversationDto.model_validate(out).model_dump(mode="json")
+    assert dto["line"] == "survey_thread"
+    assert dto["messages"][1]["attachments"][0]["status"] == "unsupported"
+    assert dto["summaryCitations"][0]["supports"] == "Daño del envío"
 
 
 @respx.mock
