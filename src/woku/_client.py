@@ -134,8 +134,9 @@ class Woku(BaseClient):
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
+        binary: bool = False,
     ) -> Any:
-        """Issue one request and return the parsed JSON body."""
+        """Issue one request; return the parsed JSON body (raw bytes if ``binary``)."""
         opts: RequestOptions = options or {}
         merged_query = clean_query(
             {**(dict(query) if query else {}), **dict(opts.get("params") or {})}
@@ -189,7 +190,7 @@ class Woku(BaseClient):
 
             status = response.status_code
             if 200 <= status < 300:
-                return parse_body(response.text)
+                return response.content if binary else parse_body(response.text)
             api_error = WokuAPIError.from_response(
                 status,
                 parse_body(response.text),
@@ -311,8 +312,9 @@ class AsyncWoku(BaseClient):
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
+        binary: bool = False,
     ) -> Any:
-        """Issue one request and return the parsed JSON body."""
+        """Issue one request; return the parsed JSON body (raw bytes if ``binary``)."""
         opts: RequestOptions = options or {}
         merged_query = clean_query(
             {**(dict(query) if query else {}), **dict(opts.get("params") or {})}
@@ -366,7 +368,7 @@ class AsyncWoku(BaseClient):
 
             status = response.status_code
             if 200 <= status < 300:
-                return parse_body(response.text)
+                return response.content if binary else parse_body(response.text)
             api_error = WokuAPIError.from_response(
                 status,
                 parse_body(response.text),

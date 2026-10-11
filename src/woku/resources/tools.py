@@ -13,13 +13,19 @@ if TYPE_CHECKING:
     from .._client import AsyncWoku, Woku
 
 
-def _list_query(params: Mapping[str, Any] | None, cursor: str | None) -> dict[str, Any]:
+def _list_query(
+    params: Mapping[str, Any] | None,
+    cursor: str | None,
+    folders_cursor: str | None = None,
+) -> dict[str, Any]:
     query = dict(params or {})
     types = query.get("types")
     if isinstance(types, (list, tuple)):
         query["types"] = ",".join(types)
     if cursor:
         query["cursor"] = cursor
+    if folders_cursor:
+        query["foldersCursor"] = folders_cursor
     return query
 
 
@@ -28,18 +34,35 @@ class _BaseToolsPage:
         self.folders: list[Folder] = list(response.get("folders") or [])
         self.tools: list[ToolItem] = list(response.get("tools") or [])
         self.next_cursor: str | None = response.get("nextCursor")
+        self.folders_next_cursor: str | None = response.get("foldersNextCursor")
         self.facets: dict[str, Any] = dict(response.get("facets") or {})
 
     def has_next_page(self) -> bool:
         return self.next_cursor is not None
 
+    def has_more_folders(self) -> bool:
+        """True when ``foldersLimit`` was used and more folders remain."""
+        return self.folders_next_cursor is not None
+
 
 class ToolsPage(_BaseToolsPage):
     """One page of ``tools.list``. Iterate every tool across pages with ``for``."""
 
-    def __init__(self, response: Mapping[str, Any], fetch_next: Any) -> None:
+    def __init__(
+        self,
+        response: Mapping[str, Any],
+        fetch_next: Any,
+        fetch_more_folders: Any = None,
+    ) -> None:
         super().__init__(response)
         self._fetch_next = fetch_next
+        self._fetch_more_folders = fetch_more_folders
+
+    def get_more_folders(self) -> ToolsPage:
+        """The next folders ("see more"): a page with those folders and no tools."""
+        if self.folders_next_cursor is None:
+            raise IndexError("No more folders")
+        return self._fetch_more_folders(self.folders_next_cursor)
 
     def get_next_page(self) -> ToolsPage:
         if self.next_cursor is None:
@@ -62,9 +85,20 @@ class ToolsPage(_BaseToolsPage):
 class AsyncToolsPage(_BaseToolsPage):
     """Async twin of :class:`ToolsPage` (``async for`` over every tool)."""
 
-    def __init__(self, response: Mapping[str, Any], fetch_next: Any) -> None:
+    def __init__(
+        self,
+        response: Mapping[str, Any],
+        fetch_next: Any,
+        fetch_more_folders: Any = None,
+    ) -> None:
         super().__init__(response)
         self._fetch_next = fetch_next
+        self._fetch_more_folders = fetch_more_folders
+
+    async def get_more_folders(self) -> AsyncToolsPage:
+        if self.folders_next_cursor is None:
+            raise IndexError("No more folders")
+        return await self._fetch_more_folders(self.folders_next_cursor)
 
     async def get_next_page(self) -> AsyncToolsPage:
         if self.next_cursor is None:
@@ -100,17 +134,20 @@ class Tools:
 
         ``params``: ``folderId``, ``scope`` (``level``/``company``), ``types``
         (list of ``woku``/``nps``/``csat``/``ces``), ``q``, ``sort``, ``limit``,
+        ``foldersLimit`` (1-100, pages the folders; omit for all of them),
         ``createdFrom``, ``createdTo``.
         """
 
-        def fetch(cursor: str | None = None) -> ToolsPage:
+        def fetch(
+            cursor: str | None = None, folders_cursor: str | None = None
+        ) -> ToolsPage:
             response = self._client.request(
                 "get",
                 "/v1/tools",
-                query=_list_query(params, cursor),
+                query=_list_query(params, cursor, folders_cursor),
                 options=options,
             )
-            return ToolsPage(response, fetch)
+            return ToolsPage(response, fetch, lambda nxt: fetch(None, nxt))
 
         return fetch()
 
@@ -144,14 +181,20 @@ class AsyncTools:
         params: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
     ) -> AsyncToolsPage:
-        async def fetch(cursor: str | None = None) -> AsyncToolsPage:
+        async def fetch(
+            cursor: str | None = None, folders_cursor: str | None = None
+        ) -> AsyncToolsPage:
             response = await self._client.request(
                 "get",
                 "/v1/tools",
-                query=_list_query(params, cursor),
+                query=_list_query(params, cursor, folders_cursor),
                 options=options,
             )
-            return AsyncToolsPage(response, fetch)
+
+            async def more(nxt: str) -> AsyncToolsPage:
+                return await fetch(None, nxt)
+
+            return AsyncToolsPage(response, fetch, more)
 
         return await fetch()
 

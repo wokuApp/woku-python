@@ -6,7 +6,7 @@ To list what a folder contains use ``woku.tools.list({"folderId": ...})``.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 from .._options import RequestOptions
@@ -19,6 +19,15 @@ if TYPE_CHECKING:
 
 def _path(folder_id: str, suffix: str = "") -> str:
     return f"/v1/folders/{quote(folder_id, safe='')}{suffix}"
+
+
+def _accept_pdf(options: RequestOptions | None) -> RequestOptions:
+    merged = cast("RequestOptions", dict(options or {}))
+    merged["headers"] = {
+        "Accept": "application/pdf",
+        **dict(merged.get("headers") or {}),
+    }
+    return merged
 
 
 class Folders:
@@ -89,6 +98,24 @@ class Folders:
         """CSV text with one row per response of every tool of the subtree."""
         return self._client.request("get", _path(folder_id, "/csv"), options=options)
 
+    def pdf(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> bytes:
+        """PDF of the folder report with a breakdown per type, as raw bytes.
+
+        ``params``: ``lang`` (``es`` or ``en``).
+        """
+        return self._client.request(
+            "get",
+            _path(folder_id, "/pdf"),
+            query=params,
+            options=_accept_pdf(options),
+            binary=True,
+        )
+
 
 class AsyncFolders:
     """Async twin of :class:`Folders`."""
@@ -155,4 +182,18 @@ class AsyncFolders:
     async def csv(self, folder_id: str, options: RequestOptions | None = None) -> str:
         return await self._client.request(
             "get", _path(folder_id, "/csv"), options=options
+        )
+
+    async def pdf(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> bytes:
+        return await self._client.request(
+            "get",
+            _path(folder_id, "/pdf"),
+            query=params,
+            options=_accept_pdf(options),
+            binary=True,
         )

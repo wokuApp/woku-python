@@ -16,6 +16,9 @@
 - Folders expose `whatsappAlertRecipients` (settable on `folders.update`): the WhatsApp
   numbers alerted when a comment on any woku, NPS, CSAT or CES tool of the folder
   is an improvement.
+- `folders.pdf` returns the folder report as PDF bytes (per-type breakdown on each
+  native scale), and `tools.list` pages the folders with `foldersLimit`
+  (`has_more_folders()` and `get_more_folders()`, sync and async).
 - `flows` is no longer read-only: `create`, `update`, `delete` and ordered `steps`
   (woku, NPS, CSAT, CES) on every flow.
 - Sync and async twins, regenerated models from the public OpenAPI, contract

@@ -8,7 +8,7 @@ import httpx
 import pytest
 import respx
 
-from woku import AsyncWoku, Woku
+from woku import AsyncWoku, Woku, WokuAPIError
 
 SPEC = json.load(open("openapi/openapi-v1.json", encoding="utf-8"))
 
@@ -58,6 +58,7 @@ CASES = [
         "/v1/folders/{id}/report",
     ),
     ("folders", "csv", ["f1"], "GET", "/v1/folders/f1/csv", "/v1/folders/{id}/csv"),
+    ("folders", "pdf", ["f1"], "GET", "/v1/folders/f1/pdf", "/v1/folders/{id}/pdf"),
     (
         "journey_folders",
         "status",
@@ -190,6 +191,137 @@ def test_folder_create_is_idempotent_and_csv_returns_text() -> None:
         woku.folders.create({"name": "Post-sale"})
         assert keys[0]
         assert woku.folders.csv("f1") == "Carpeta,Tipo\nViajes,NPS"
+
+
+PDF_BYTES = b"%PDF-1.4\x00\xff\xfe binary"
+
+
+@respx.mock
+def test_folder_pdf_returns_raw_bytes_and_asks_for_pdf() -> None:
+    route = respx.get("https://api.test/v1/folders/f1/pdf").mock(
+        return_value=httpx.Response(
+            200, content=PDF_BYTES, headers={"content-type": "application/pdf"}
+        )
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        assert woku.folders.pdf("f1", {"lang": "es"}) == PDF_BYTES
+    request = route.calls[0].request
+    assert request.headers["accept"] == "application/pdf"
+    assert request.url.params["lang"] == "es"
+
+
+@respx.mock
+def test_folder_pdf_error_is_an_api_error() -> None:
+    respx.get("https://api.test/v1/folders/nope/pdf").mock(
+        return_value=httpx.Response(
+            404, json={"error": {"message": "Folder not found"}}
+        )
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        with pytest.raises(WokuAPIError):
+            woku.folders.pdf("nope")
+
+
+@respx.mock
+async def test_async_folder_pdf_returns_raw_bytes() -> None:
+    respx.get("https://api.test/v1/folders/f1/pdf").mock(
+        return_value=httpx.Response(200, content=PDF_BYTES)
+    )
+    async with AsyncWoku(api_key="sk_test", base_url="https://api.test") as woku:
+        assert await woku.folders.pdf("f1") == PDF_BYTES
+
+
+@respx.mock
+def test_tools_list_pages_the_folders() -> None:
+    seen: list[dict[str, str]] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        params = dict(request.url.params)
+        seen.append(params)
+        if "foldersCursor" not in params:
+            return httpx.Response(
+                200,
+                json={
+                    "folders": [{"id": "f1", "name": "A"}],
+                    "foldersNextCursor": "fc1",
+                    "tools": [_tool("a")],
+                    "nextCursor": "c1",
+                    "facets": {"types": {}},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "folders": [{"id": "f2", "name": "B"}],
+                "foldersNextCursor": None,
+                "tools": [],
+                "nextCursor": None,
+                "facets": {"types": {}},
+            },
+        )
+
+    respx.get("https://api.test/v1/tools").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        page = woku.tools.list({"foldersLimit": 12})
+        assert page.has_more_folders()
+        more = page.get_more_folders()
+        assert [f["id"] for f in more.folders] == ["f2"]
+        assert more.tools == []
+        assert not more.has_more_folders()
+        with pytest.raises(IndexError):
+            more.get_more_folders()
+    assert seen[0]["foldersLimit"] == "12"
+    assert seen[1]["foldersCursor"] == "fc1"
+    assert seen[1]["foldersLimit"] == "12"
+    assert "cursor" not in seen[1]
+
+
+@respx.mock
+def test_paging_the_tools_does_not_repeat_the_folders_cursor() -> None:
+    seen: list[dict[str, str]] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        params = dict(request.url.params)
+        seen.append(params)
+        first = "cursor" not in params
+        return httpx.Response(
+            200,
+            json={
+                "folders": [],
+                "foldersNextCursor": "fc1" if first else None,
+                "tools": [_tool("a" if first else "b")],
+                "nextCursor": "c1" if first else None,
+                "facets": {"types": {}},
+            },
+        )
+
+    respx.get("https://api.test/v1/tools").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        page = woku.tools.list({"foldersLimit": 5})
+        page.get_next_page()
+    assert "foldersCursor" not in seen[1]
+
+
+@respx.mock
+async def test_async_tools_list_pages_the_folders() -> None:
+    def respond(request: httpx.Request) -> httpx.Response:
+        first = "foldersCursor" not in request.url.params
+        return httpx.Response(
+            200,
+            json={
+                "folders": [{"id": "f1" if first else "f2", "name": "x"}],
+                "foldersNextCursor": "fc1" if first else None,
+                "tools": [],
+                "nextCursor": None,
+                "facets": {"types": {}},
+            },
+        )
+
+    respx.get("https://api.test/v1/tools").mock(side_effect=respond)
+    async with AsyncWoku(api_key="sk_test", base_url="https://api.test") as woku:
+        page = await woku.tools.list({"foldersLimit": 1})
+        more = await page.get_more_folders()
+    assert [f["id"] for f in more.folders] == ["f2"]
 
 
 def _tool(tool_id: str) -> dict[str, Any]:

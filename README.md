@@ -383,20 +383,30 @@ for tool in woku.tools.list({"folderId": folder["id"], "types": ["csat", "nps"]}
     print(tool["type"], tool["name"], tool["reviewCount"], tool["headline"]["value"])
 found = woku.tools.list({"q": "delivery", "scope": "company"})
 
+# "See more" for folders: foldersLimit pages the folders of the level (omit it
+# to receive all of them). The tools keep their own cursor.
+first = woku.tools.list({"foldersLimit": 12})
+if first.has_more_folders():
+    more = first.get_more_folders()  # only the next folders, no tools
+
 # Headline figures per type (native scales, never mixed), company or folder.
 stats = woku.tools.stats({"folderId": folder["id"]})
 
 # Move items of mixed types, or send them to the root with folderId None.
 woku.tools.move(
     {
-        "items": [{"type": "csat", "id": "csat_tool_id"}, {"type": "woku", "id": "woku_id"}],
+        "items": [
+            {"type": "csat", "id": "csat_tool_id"},
+            {"type": "woku", "id": "woku_id"},
+        ],
         "folderId": folder["id"],
     }
 )
 woku.nps_tools.move("nps_tool_id", {"folderId": None})
 
-# AI report and CSV over every tool of the folder and its subfolders.
+# AI report, CSV and PDF over every tool of the folder and its subfolders.
 report = woku.folders.report(folder["id"], {"lang": "en"})
+pdf_bytes = woku.folders.pdf(folder["id"], {"lang": "en"})  # raw bytes, write to a file
 csv_text = woku.folders.csv(folder["id"])
 
 # WhatsApp numbers alerted when a comment on any tool of the folder is an
