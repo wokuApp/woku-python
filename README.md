@@ -336,6 +336,32 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Flows
+
+A flow is an ordered sequence of steps, each a woku or an NPS, CSAT or CES tool,
+that a respondent answers one after the other. Flows live outside folders.
+
+```python
+flow = woku.flows.create(
+    {
+        "name": "Post-purchase",
+        "steps": [
+            {"type": "nps", "toolId": "nps_tool_id"},
+            {"type": "csat", "toolId": "csat_tool_id"},
+            {"type": "woku", "toolId": "woku_id"},
+        ],
+    }
+)
+woku.flows.update(flow["_id"], {"steps": [{"type": "csat", "toolId": "csat_tool_id"}]})
+for f in woku.flows.list():
+    print(f["name"], len(f["steps"]))
+woku.flows.delete(flow["_id"])  # its tools and responses stay
+```
+
+Use 1 to 20 steps, each tool once and all yours. For an `nps` step, your company
+id as `toolId` means the company-level NPS. `flows.get(flow_id)` returns the flow
+data (steps with their tools, wokus and branding).
+
 ### Folders and tools
 
 One folder tree holds wokus and NPS, CSAT and CES tools together:

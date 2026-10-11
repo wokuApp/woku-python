@@ -1232,6 +1232,46 @@ class V1CreateFormResponseBodyDto(BaseModel):
     """
 
 
+class Type1(Enum):
+    """
+    Kind of tool the respondent answers in this step.
+    """
+
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class FlowStepBodyDTO(BaseModel):
+    type: Type1
+    """
+    Kind of tool the respondent answers in this step.
+    """
+    toolId: str
+    """
+    Tool id (woku, NPS tool, CSAT tool or CES tool). For an nps step, your company id means the company-level NPS.
+    """
+
+
+class CreateFlowBodyDTO(BaseModel):
+    name: Annotated[str, Field(examples=['Post-purchase journey'], max_length=140)]
+    steps: Annotated[list[FlowStepBodyDTO], Field(max_length=20, min_length=1)]
+    """
+    Ordered steps. A tool can appear once. Flows live outside folders.
+    """
+
+
+class UpdateFlowBodyDTO(BaseModel):
+    name: Annotated[Optional[str], Field(max_length=140)] = None
+    steps: Annotated[
+        Optional[list[FlowStepBodyDTO]], Field(max_length=20, min_length=1)
+    ] = None
+    """
+    The new full ordered list of steps.
+    """
+
+
 class NpsToolLocalizedContentBodyDTO(BaseModel):
     locale: Annotated[Locale, Field(examples=['en'])]
     npsMessage: Annotated[
@@ -1950,7 +1990,7 @@ class V1JourneyPayloadMapDto(BaseModel):
     ] = None
 
 
-class Type1(Enum):
+class Type2(Enum):
     manual = 'manual'
     event = 'event'
     webhook = 'webhook'
@@ -1964,7 +2004,7 @@ class Anchor(Enum):
 
 
 class V1JourneyTriggerDto(BaseModel):
-    type: Type1
+    type: Type2
     event: Optional[str] = None
     """
     Legacy event trigger name. Reserved journey events cannot be emitted.
@@ -2071,7 +2111,7 @@ class V1JourneyPresentationDto(BaseModel):
     copy_: Annotated[Optional[V1JourneyLocaleDto], Field(alias='copy')] = None
 
 
-class Type2(Enum):
+class Type3(Enum):
     csat = 'csat'
     ces = 'ces'
     woku = 'woku'
@@ -2081,7 +2121,7 @@ class Type2(Enum):
 
 
 class V1JourneyLegacyToolRefDto(BaseModel):
-    type: Type2
+    type: Type3
     id: str
 
 
@@ -2380,7 +2420,7 @@ class MoveFolderBodyDTO(BaseModel):
     """
 
 
-class Type3(Enum):
+class Type4(Enum):
     woku = 'woku'
     nps = 'nps'
     csat = 'csat'
@@ -2389,7 +2429,7 @@ class Type3(Enum):
 
 
 class MoveItemDTO(BaseModel):
-    type: Type3
+    type: Type4
     id: str
 
 

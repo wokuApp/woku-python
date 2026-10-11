@@ -66,6 +66,25 @@ CASES = [
         "/v1/journey-folders/organize",
         "/v1/journey-folders/organize",
     ),
+    ("flows", "list", [], "GET", "/v1/flows", "/v1/flows"),
+    ("flows", "get", ["fl1"], "GET", "/v1/flows/fl1", "/v1/flows/{id}"),
+    (
+        "flows",
+        "create",
+        [{"name": "Post-purchase", "steps": [{"type": "csat", "toolId": "c1"}]}],
+        "POST",
+        "/v1/flows",
+        "/v1/flows",
+    ),
+    (
+        "flows",
+        "update",
+        ["fl1", {"steps": [{"type": "woku", "toolId": "w1"}]}],
+        "PATCH",
+        "/v1/flows/fl1",
+        "/v1/flows/{id}",
+    ),
+    ("flows", "delete", ["fl1"], "DELETE", "/v1/flows/fl1", "/v1/flows/{id}"),
     (
         "tools",
         "stats",
@@ -296,3 +315,26 @@ def test_journey_status_and_folder_fields() -> None:
         journey = woku.journeys.list()[0]
         assert journey["folderId"] == "f1"
         assert journey["momentFolders"]["sale"] == "f2"
+
+
+@respx.mock
+def test_flow_create_sends_ordered_steps_with_an_idempotency_key() -> None:
+    seen: list[tuple[str | None, Any]] = []
+    steps = [
+        {"type": "nps", "toolId": "n1"},
+        {"type": "csat", "toolId": "c1"},
+        {"type": "woku", "toolId": "w1"},
+    ]
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        seen.append(
+            (request.headers.get("x-woku-idempotency-key"), json.loads(request.content))
+        )
+        return httpx.Response(201, json={"_id": "fl1", "name": "A", "steps": steps})
+
+    respx.post("https://api.test/v1/flows").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        flow = woku.flows.create({"name": "A", "steps": steps})
+    assert seen[0][0]
+    assert seen[0][1] == {"name": "A", "steps": steps}
+    assert [step["type"] for step in flow["steps"]] == ["nps", "csat", "woku"]

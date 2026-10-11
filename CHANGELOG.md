@@ -13,6 +13,8 @@
   `move(tool_id, {"folderId": ...})`.
 - New `journey_folders` resource (`status`, `organize`), `folderId` and `momentFolders`
   on journeys, and `origin` on folders.
+- `flows` is no longer read-only: `create`, `update`, `delete` and ordered `steps`
+  (woku, NPS, CSAT, CES) on every flow.
 - Sync and async twins, regenerated models from the public OpenAPI, contract
   tests and an example. Requires the server release that ships these endpoints.
 

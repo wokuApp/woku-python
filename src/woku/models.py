@@ -433,3 +433,26 @@ class JourneyFoldersStatus(TypedDict, total=False):
     organizing: bool
     #: Journeys and tools still without a folder.
     pending: dict[str, int]
+
+
+class FlowStep(TypedDict, total=False):
+    """One step of a flow: the tool the respondent answers at that point."""
+
+    type: ToolType
+    #: Tool id. For an ``nps`` step, your company id means the company-level NPS.
+    toolId: str
+
+
+class Flow(TypedDict, total=False):
+    """A survey flow: an ordered sequence of woku, NPS, CSAT and CES steps."""
+
+    _id: str
+    name: str
+    #: Ordered steps. Flows live outside folders.
+    steps: list[FlowStep]
+    #: Woku ids of the ``woku`` steps, in order (kept for compatibility).
+    wokusIds: list[str]
+    npsToolId: str | None
+    companyIdNps: str | None
+    createdAt: str
+    updatedAt: str
