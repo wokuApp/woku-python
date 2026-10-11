@@ -22,7 +22,7 @@ class JourneyFolders:
         self._client = client
 
     def status(self, options: RequestOptions | None = None) -> JourneyFoldersStatus:
-        """Whether the organization is on, running, and what is left without a folder."""
+        """Whether the organization is on, running, and what is left to organize."""
         return self._client.request("get", "/v1/journey-folders", options=options)
 
     def organize(self, options: RequestOptions | None = None) -> JourneyFoldersStatus:
