@@ -2405,11 +2405,23 @@ class CreateFolderBodyDTO(BaseModel):
     color: Annotated[Optional[str], Field(examples=['#3498db'])] = None
 
 
+class WhatsappAlertRecipientDTO(BaseModel):
+    whatsappId: Annotated[str, Field(examples=['56912345678'])]
+    """
+    E.164 phone number without the leading +.
+    """
+    name: Annotated[str, Field(examples=['Ana (support)'], max_length=60)]
+
+
 class UpdateFolderBodyDTO(BaseModel):
     name: Annotated[Optional[str], Field(max_length=30, min_length=2)] = None
     color: Annotated[Optional[str], Field(examples=['#3498db'])] = None
     """
     Hex color, or null to clear it.
+    """
+    whatsappAlertRecipients: Optional[list[WhatsappAlertRecipientDTO]] = None
+    """
+    Replaces the WhatsApp numbers alerted when a comment of any tool in this folder is an improvement (wokus, NPS, CSAT, CES). Send [] to clear.
     """
 
 

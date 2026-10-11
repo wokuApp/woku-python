@@ -13,6 +13,9 @@
   `move(tool_id, {"folderId": ...})`.
 - New `journey_folders` resource (`status`, `organize`), `folderId` and `momentFolders`
   on journeys, and `origin` on folders.
+- Folders expose `whatsappAlertRecipients` (settable on `folders.update`): the WhatsApp
+  numbers alerted when a comment on any woku, NPS, CSAT or CES tool of the folder
+  is an improvement.
 - `flows` is no longer read-only: `create`, `update`, `delete` and ordered `steps`
   (woku, NPS, CSAT, CES) on every flow.
 - Sync and async twins, regenerated models from the public OpenAPI, contract

@@ -51,7 +51,8 @@ class Folders:
         body: UpdateFolderParams,
         options: RequestOptions | None = None,
     ) -> Folder:
-        """Rename or recolor a folder (``{"color": None}`` clears the color)."""
+        """Rename or recolor a folder (``{"color": None}`` clears the color), or
+        replace its WhatsApp alert recipients (``whatsappAlertRecipients``)."""
         return self._client.request(
             "patch", _path(folder_id), body=body, options=options
         )

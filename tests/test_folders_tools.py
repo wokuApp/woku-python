@@ -27,7 +27,15 @@ CASES = [
     (
         "folders",
         "update",
-        ["f1", {"color": None}],
+        [
+            "f1",
+            {
+                "color": None,
+                "whatsappAlertRecipients": [
+                    {"whatsappId": "56912345678", "name": "Ana"}
+                ],
+            },
+        ],
         "PATCH",
         "/v1/folders/f1",
         "/v1/folders/{id}",

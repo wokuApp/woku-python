@@ -399,6 +399,13 @@ woku.nps_tools.move("nps_tool_id", {"folderId": None})
 report = woku.folders.report(folder["id"], {"lang": "en"})
 csv_text = woku.folders.csv(folder["id"])
 
+# WhatsApp numbers alerted when a comment on any tool of the folder is an
+# improvement (wokus, NPS, CSAT and CES). The list replaces the previous one.
+woku.folders.update(
+    folder["id"],
+    {"whatsappAlertRecipients": [{"whatsappId": "56912345678", "name": "Ana"}]},
+)
+
 # Deleting a folder never deletes its content: it moves up to the parent.
 woku.folders.delete(folder["id"])
 ```

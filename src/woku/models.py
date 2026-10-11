@@ -394,6 +394,9 @@ class Folder(TypedDict, total=False):
     #: System folder kind (``journeys-root``, ``journey``, ``journey-moment`` or
     #: ``integration``); None for a folder you created.
     origin: str | None
+    #: WhatsApp numbers alerted when a comment of any tool in the folder is an
+    #: improvement (``whatsappId`` without the leading +, and ``name``).
+    whatsappAlertRecipients: list[dict[str, str]]
     createdAt: str | None
     stats: FolderStats
 
