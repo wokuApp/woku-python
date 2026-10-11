@@ -395,8 +395,9 @@ class Folder(TypedDict, total=False):
     #: ``integration``); None for a folder you created.
     origin: str | None
     #: WhatsApp numbers alerted when a comment of any tool in the folder is an
-    #: improvement (``whatsappId`` without the leading +, and ``name``).
-    whatsappAlertRecipients: list[dict[str, str]]
+    #: improvement: ``whatsappId`` (no leading +), ``name`` and ``sources`` (which
+    #: of ``woku``, ``nps``, ``csat`` and ``ces`` alert that number).
+    whatsappAlertRecipients: list[dict[str, Any]]
     createdAt: str | None
     stats: FolderStats
 

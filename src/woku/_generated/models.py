@@ -2405,12 +2405,23 @@ class CreateFolderBodyDTO(BaseModel):
     color: Annotated[Optional[str], Field(examples=['#3498db'])] = None
 
 
+class Source1(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
 class WhatsappAlertRecipientDTO(BaseModel):
     whatsappId: Annotated[str, Field(examples=['56912345678'])]
     """
     E.164 phone number without the leading +.
     """
     name: Annotated[str, Field(examples=['Ana (support)'], max_length=60)]
+    sources: Optional[list[Source1]] = None
+    """
+    Kinds of comment that alert this number. Defaults to all four.
+    """
 
 
 class UpdateFolderBodyDTO(BaseModel):
