@@ -35,6 +35,7 @@ from .resources.flows import AsyncFlows, Flows
 from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
 from .resources.forms import AsyncForms, Forms
+from .resources.journey_folders import AsyncJourneyFolders, JourneyFolders
 from .resources.journeys import AsyncJourneys, Journeys
 from .resources.media import AsyncMedia, Media
 from .resources.quarantines import AsyncQuarantines, Quarantines
@@ -121,6 +122,7 @@ class Woku(BaseClient):
         self.quarantines = Quarantines(self)
         self.folders = Folders(self)
         self.tools = Tools(self)
+        self.journey_folders = JourneyFolders(self)
 
     def request(
         self,
@@ -297,6 +299,7 @@ class AsyncWoku(BaseClient):
         self.quarantines = AsyncQuarantines(self)
         self.folders = AsyncFolders(self)
         self.tools = AsyncTools(self)
+        self.journey_folders = AsyncJourneyFolders(self)
 
     async def request(
         self,

@@ -11,6 +11,8 @@
   with search and filters, `stats` per type in native scales and batch `move`.
 - `folderId` on NPS, CSAT and CES tool creation and responses, plus
   `move(tool_id, {"folderId": ...})`.
+- New `journey_folders` resource (`status`, `organize`), `folderId` and `momentFolders`
+  on journeys, and `origin` on folders.
 - Sync and async twins, regenerated models from the public OpenAPI, contract
   tests and an example. Requires the server release that ships these endpoints.
 

@@ -51,6 +51,22 @@ CASES = [
     ),
     ("folders", "csv", ["f1"], "GET", "/v1/folders/f1/csv", "/v1/folders/{id}/csv"),
     (
+        "journey_folders",
+        "status",
+        [],
+        "GET",
+        "/v1/journey-folders",
+        "/v1/journey-folders",
+    ),
+    (
+        "journey_folders",
+        "organize",
+        [],
+        "POST",
+        "/v1/journey-folders/organize",
+        "/v1/journey-folders/organize",
+    ),
+    (
         "tools",
         "stats",
         [{"folderId": "f1"}],
@@ -232,3 +248,51 @@ def test_create_bodies_accept_folder_id_in_the_contract() -> None:
         "CreateCesToolBodyDTO",
     ):
         assert "folderId" in schemas[name]["properties"]
+
+
+@respx.mock
+def test_organize_journey_folders_raises_409_while_running() -> None:
+    from woku import ConflictError
+
+    respx.post("https://api.test/v1/journey-folders/organize").mock(
+        return_value=httpx.Response(409, json={"message": "Already organizing"})
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        with pytest.raises(ConflictError):
+            woku.journey_folders.organize()
+
+
+@respx.mock
+def test_journey_status_and_folder_fields() -> None:
+    respx.get("https://api.test/v1/journey-folders").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "enabled": True,
+                "enabledAt": None,
+                "organizedAt": None,
+                "organizing": True,
+                "pending": {"journeys": 1, "tools": 5},
+            },
+        )
+    )
+    respx.get("https://api.test/v1/journeys").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "id": "j1",
+                    "enabled": True,
+                    "version": 1,
+                    "moments": [],
+                    "folderId": "f1",
+                    "momentFolders": {"sale": "f2"},
+                }
+            ],
+        )
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        assert woku.journey_folders.status()["pending"]["tools"] == 5
+        journey = woku.journeys.list()[0]
+        assert journey["folderId"] == "f1"
+        assert journey["momentFolders"]["sale"] == "f2"

@@ -377,6 +377,19 @@ csv_text = woku.folders.csv(folder["id"])
 woku.folders.delete(folder["id"])
 ```
 
+```python
+# Keep customer journeys in folders: Viajes > journey > moment.
+status = woku.journey_folders.status()  # enabled, organizing, pending (journeys, tools)
+if not status["enabled"]:
+    woku.journey_folders.organize()  # background pass; ConflictError (409) while running
+
+journey = woku.journeys.get("journey_id")
+print(journey.get("folderId"), journey.get("momentFolders"))  # moment key -> folder id
+```
+
+Folders created by woku report their `origin` (`journeys-root`, `journey`,
+`journey-moment` or `integration`); your own folders have `origin` `None`.
+
 `woku.folders` also has `list`, `get`, `update` and `move`. The tools
 resources (`nps_tools`, `csat_tools`, `ces_tools`) accept `folderId` on `create`,
 return `folderId` on every tool and have `move(tool_id, {"folderId": ...})`.
@@ -438,7 +451,7 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
 `ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
-`journeys`, `folders`, `tools`.
+`journeys`, `folders`, `tools`, `journey_folders`.
 
 ## License
 

@@ -391,6 +391,9 @@ class Folder(TypedDict, total=False):
     parentFolderId: str | None
     #: Breadcrumb from the root, for example ``Journeys > Post-sale``.
     path: str
+    #: System folder kind (``journeys-root``, ``journey``, ``journey-moment`` or
+    #: ``integration``); None for a folder you created.
+    origin: str | None
     createdAt: str | None
     stats: FolderStats
 
@@ -418,3 +421,15 @@ class MoveResult(TypedDict, total=False):
     moved: int
     folderId: str | None
     items: list[dict[str, str]]
+
+
+class JourneyFoldersStatus(TypedDict, total=False):
+    """Whether journeys are kept in folders (``Viajes > journey > moment``)."""
+
+    enabled: bool
+    enabledAt: str | None
+    organizedAt: str | None
+    #: True while the one-off organization runs in the background.
+    organizing: bool
+    #: Journeys and tools still without a folder.
+    pending: dict[str, int]
