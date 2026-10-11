@@ -103,6 +103,136 @@ class InvitationsResult(TypedDict, total=False):
     rejectedRecipients: list[RejectedRecipient]
 
 
+FollowUpState = Literal[
+    "pending",
+    "initial_sent",
+    "awaiting_detail",
+    "closing",
+    "completed",
+    "timed_out",
+    "cancelled",
+]
+
+
+class FollowUpOrigin(TypedDict, total=False):
+    tool: Literal["woku", "nps", "csat", "ces"]
+    refId: str
+    instrumentId: str
+
+
+class FollowUp(TypedDict, total=False):
+    """Lightweight follow-up state, separate from ticket evidence application."""
+
+    conversationId: str
+    state: Literal[
+        "not_applicable",
+        "pending",
+        "initial_sent",
+        "awaiting_detail",
+        "closing",
+        "completed",
+        "timed_out",
+        "cancelled",
+    ]
+    reason: str
+    availableSummaryVersion: int
+    appliedSummaryVersion: int
+    enrichedAt: str
+    enrichmentState: Literal["processing", "applied", "failed", "skipped"]
+    enrichmentReason: str
+
+
+#: WhatsApp line: ``survey_thread`` (the agent continued the survey chat on the
+#: survey number) or ``follow_up_number`` (dedicated number). Absent for email.
+FollowUpLine = Literal["survey_thread", "follow_up_number"]
+
+#: ``survey``: the survey exchange before the follow-up (prelude).
+#: ``follow_up``: the follow-up itself.
+FollowUpMessagePhase = Literal["survey", "follow_up"]
+
+
+class FollowUpAttachment(TypedDict, total=False):
+    """A file the customer sent.
+
+    ``adminUrl`` opens it in the woku admin after login and a company check;
+    the file itself and storage URLs are never returned. ``text`` (transcript
+    or description) is untrusted customer content.
+    """
+
+    index: int
+    label: str
+    kind: Literal["image", "audio", "document", "unsupported"]
+    fileId: str
+    readableFileId: str
+    filename: str
+    mimeType: str
+    status: Literal["pending", "ready", "failed", "unsupported"]
+    text: str
+    failureReason: str
+    adminUrl: str
+
+
+class FollowUpCitation(TypedDict, total=False):
+    """A file the executive summary cites as "(Archivo N)"."""
+
+    index: int
+    label: str
+    fileId: str
+    supports: str
+    adminUrl: str
+
+
+class FollowUpMessage(TypedDict, total=False):
+    role: Literal["agent", "client"]
+    #: May be empty when the message only has files.
+    content: str
+    timestamp: str
+    phase: FollowUpMessagePhase
+    responseType: str
+    selectedOption: str
+    attachments: list[FollowUpAttachment]
+
+
+class FollowUpConversation(TypedDict, total=False):
+    """Authorized conversation without response tokens or transport credentials."""
+
+    _id: str
+    companyId: str
+    origin: FollowUpOrigin
+    wokuId: str
+    reviewId: str
+    reviewType: Literal["textnote", "voicemail"]
+    originalReview: str
+    originalQualification: int
+    state: FollowUpState
+    channel: Channel
+    line: FollowUpLine
+    reason: str
+    messages: list[FollowUpMessage]
+    executiveSummary: str
+    actionItems: list[str]
+    sentiment: str
+    topics: list[str]
+    summaryCitations: list[FollowUpCitation]
+    summaryVersion: int
+    createdAt: str
+    updatedAt: str
+
+
+class TicketOriginTracker(TypedDict, total=False):
+    trackerId: str
+    name: str
+    value: str
+
+
+class TicketOrigin(TypedDict, total=False):
+    tool: Literal["woku", "nps", "csat", "ces", "form"]
+    refId: str
+    instrumentId: str
+    instrumentName: str
+    trackers: list[TicketOriginTracker]
+
+
 class Ticket(TypedDict, total=False):
     """Support ticket (curated allow-list)."""
 
@@ -111,7 +241,9 @@ class Ticket(TypedDict, total=False):
     title: str
     severity: Severity
     destinationId: str
-    origin: WokuRecord
+    origin: TicketOrigin
+    followUp: FollowUp
+    contentVersion: int
     score: WokuRecord
     aiSummary: str
     aiCategory: str

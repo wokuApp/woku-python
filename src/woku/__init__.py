@@ -33,9 +33,39 @@ from ._exceptions import (
 from ._options import RequestOptions
 from ._pagination import AsyncPage, PageResponse, SyncPage
 from ._version import __version__
+from .models import (
+    FollowUp,
+    FollowUpAttachment,
+    FollowUpCitation,
+    FollowUpConversation,
+    FollowUpLine,
+    FollowUpMessage,
+    FollowUpMessagePhase,
+    FollowUpOrigin,
+    FollowUpState,
+    TicketOrigin,
+    TicketOriginTracker,
+)
+from .resources.follow_ups import AsyncFollowUps, FollowUps
+from .types import CustomTicketDestinationConfig, CustomTicketUpdateConfig
 
 __all__ = [
     "AsyncPage",
+    "CustomTicketDestinationConfig",
+    "CustomTicketUpdateConfig",
+    "AsyncFollowUps",
+    "FollowUps",
+    "FollowUp",
+    "FollowUpAttachment",
+    "FollowUpCitation",
+    "FollowUpConversation",
+    "FollowUpLine",
+    "FollowUpMessage",
+    "FollowUpMessagePhase",
+    "FollowUpOrigin",
+    "FollowUpState",
+    "TicketOrigin",
+    "TicketOriginTracker",
     "AsyncWoku",
     "AuthenticationError",
     "BadRequestError",

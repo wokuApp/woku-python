@@ -39,8 +39,15 @@ import sys
 
 path = sys.argv[1]
 text = path and open(path, encoding="utf-8").read()
-text = text.replace("from pydantic import BaseModel, EmailStr, Field",
-                    "from pydantic import BaseModel, Field")
+text = re.sub(
+    r"^from pydantic import (.+)$",
+    lambda match: "from pydantic import " + ", ".join(
+        member.strip() for member in match.group(1).split(",")
+        if member.strip() != "EmailStr"
+    ),
+    text,
+    flags=re.MULTILINE,
+)
 text = re.sub(r"\bEmailStr\b", "str", text)
 open(path, "w", encoding="utf-8").write(text)
 PY

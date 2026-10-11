@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Annotated, Any, Optional, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field
 
 
 class ValidationErrorResponseDto(BaseModel):
@@ -60,6 +60,187 @@ class CreateWokuFormDataApiDto(BaseModel):
     parentFolderSecondaryKey: Optional[str] = None
     clientEmail: Optional[str] = None
     clientPhone: Optional[str] = None
+
+
+class Tool(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class FollowUpOriginDto(BaseModel):
+    tool: Tool
+    refId: str
+    instrumentId: Optional[str] = None
+
+
+class Kind(Enum):
+    image = 'image'
+    audio = 'audio'
+    document = 'document'
+    unsupported = 'unsupported'
+
+
+class Status(Enum):
+    pending = 'pending'
+    ready = 'ready'
+    failed = 'failed'
+    unsupported = 'unsupported'
+
+
+class FollowUpAttachmentDto(BaseModel):
+    index: float
+    """
+    Stable number of the file in the conversation (survey prelude included).
+    """
+    label: str
+    """
+    Display label in the conversation language, e.g. "Archivo 2" or "File 2". Summaries cite files by this label.
+    """
+    kind: Kind
+    fileId: Optional[str] = None
+    """
+    Private original file (evidence). Absent while pending or when nothing was stored (location, contacts, over the limits).
+    """
+    readableFileId: Optional[str] = None
+    """
+    Converted copy the model read, when there was a conversion.
+    """
+    filename: str
+    mimeType: str
+    status: Status
+    text: Optional[str] = None
+    """
+    Transcript (audio) or description (image, document) generated from the file. Untrusted customer content.
+    """
+    failureReason: Optional[str] = None
+    """
+    Stable reason code when failed or unsupported (e.g. video, location, message_limit, conversation_limit, read_failed).
+    """
+    adminUrl: Optional[str] = None
+    """
+    Admin page that opens this file after login and a company check (signed, short-lived download). Never a storage URL.
+    """
+
+
+class Role(Enum):
+    agent = 'agent'
+    client = 'client'
+
+
+class Phase(Enum):
+    """
+    survey: the prelude, what the customer said in the survey before the follow-up. On the survey_thread line it is the WhatsApp survey exchange; on every other line (follow_up_number, email) it is the original comment as a client message. follow_up: the follow-up itself. Every line may start with the prelude, so messages[0] can be a client message; filter phase === 'follow_up' to read only the follow-up.
+    """
+
+    survey = 'survey'
+    follow_up = 'follow_up'
+
+
+class FollowUpMessageDto(BaseModel):
+    role: Role
+    content: str
+    """
+    Message text. May be empty when the message only has files.
+    """
+    timestamp: datetime
+    phase: Phase
+    """
+    survey: the prelude, what the customer said in the survey before the follow-up. On the survey_thread line it is the WhatsApp survey exchange; on every other line (follow_up_number, email) it is the original comment as a client message. follow_up: the follow-up itself. Every line may start with the prelude, so messages[0] can be a client message; filter phase === 'follow_up' to read only the follow-up.
+    """
+    responseType: Optional[str] = None
+    selectedOption: Optional[str] = None
+    attachments: Optional[list[FollowUpAttachmentDto]] = None
+    """
+    Files the customer sent with this message.
+    """
+
+
+class FollowUpCitationDto(BaseModel):
+    index: float
+    label: str
+    """
+    Label of the cited file, e.g. "Archivo 2".
+    """
+    fileId: Optional[str] = None
+    supports: str
+    """
+    What the file supports in the summary.
+    """
+    adminUrl: Optional[str] = None
+    """
+    Admin page that opens this file after login and a company check (signed, short-lived download). Never a storage URL.
+    """
+
+
+class ReviewType(Enum):
+    textnote = 'textnote'
+    voicemail = 'voicemail'
+
+
+class State(Enum):
+    pending = 'pending'
+    initial_sent = 'initial_sent'
+    awaiting_detail = 'awaiting_detail'
+    closing = 'closing'
+    completed = 'completed'
+    timed_out = 'timed_out'
+    cancelled = 'cancelled'
+
+
+class Channel(Enum):
+    email = 'email'
+    whatsapp = 'whatsapp'
+
+
+class Line(Enum):
+    """
+    WhatsApp line. survey_thread: the agent continues the survey conversation on the survey number. follow_up_number: the agent writes from the dedicated follow-up number. Absent for email.
+    """
+
+    survey_thread = 'survey_thread'
+    follow_up_number = 'follow_up_number'
+
+
+class FollowUpConversationDto(BaseModel):
+    field_id: Annotated[str, Field(alias='_id')]
+    companyId: str
+    origin: FollowUpOriginDto
+    wokuId: Optional[str] = None
+    reviewId: Optional[str] = None
+    reviewType: ReviewType
+    originalReview: str
+    originalQualification: Optional[float] = None
+    state: State
+    channel: Channel
+    line: Optional[Line] = None
+    """
+    WhatsApp line. survey_thread: the agent continues the survey conversation on the survey number. follow_up_number: the agent writes from the dedicated follow-up number. Absent for email.
+    """
+    reason: Optional[str] = None
+    """
+    Stable reason code for exclusion, failure or uncertain delivery. Provider error details are never exposed.
+    """
+    messages: list[FollowUpMessageDto]
+    """
+    Messages in order: the survey prelude (phase survey) first, then the follow-up (phase follow_up). Filter phase === 'follow_up' for the follow-up messages only.
+    """
+    executiveSummary: Optional[str] = None
+    actionItems: Optional[list[str]] = None
+    sentiment: Optional[str] = None
+    topics: Optional[list[str]] = None
+    summaryCitations: Optional[list[FollowUpCitationDto]] = None
+    """
+    Files the summary cites; the summary text mentions them as "(Archivo N)".
+    """
+    summaryVersion: float
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+
+
+class FollowUpEnvelopeDto(BaseModel):
+    data: FollowUpConversationDto
 
 
 class CreateExternalTrackerDefinitionDTO(BaseModel):
@@ -153,6 +334,55 @@ class AssignExternalTrackerByNameDTO(BaseModel):
     """
 
 
+class Mode(Enum):
+    """
+    upsert explicitly reuses the creation URL/method with a stable externalId. remote-id updates the previously created remote resource.
+    """
+
+    upsert = 'upsert'
+    remote_id = 'remote-id'
+
+
+class Method(Enum):
+    """
+    remote-id only.
+    """
+
+    PUT = 'PUT'
+    PATCH = 'PATCH'
+
+
+class CustomTicketDestinationUpdateDto(BaseModel):
+    mode: Mode
+    """
+    upsert explicitly reuses the creation URL/method with a stable externalId. remote-id updates the previously created remote resource.
+    """
+    url: Annotated[Optional[str], Field(max_length=2000)] = None
+    """
+    remote-id only: same-origin URL containing {{remoteId}}; credentials and fragments are forbidden.
+    """
+    method: Optional[Method] = 'PATCH'
+    """
+    remote-id only.
+    """
+    responseIdPath: Annotated[Optional[str], Field(max_length=200)] = None
+    """
+    Dot-separated path to the ID in the creation response, required for remote-id. Prototype keys are forbidden.
+    """
+
+
+class Method1(Enum):
+    POST = 'POST'
+    PUT = 'PUT'
+
+
+class CustomTicketDestinationConfigDto(BaseModel):
+    url: AnyUrl
+    method: Optional[Method1] = None
+    headers: Optional[dict[str, str]] = None
+    update: Optional[CustomTicketDestinationUpdateDto] = None
+
+
 class RelationToPrevious(Enum):
     AND = 'AND'
     OR = 'OR'
@@ -184,7 +414,7 @@ class TicketDestinationTemplateDto(BaseModel):
     """
 
 
-class Kind(Enum):
+class Kind1(Enum):
     zendesk = 'zendesk'
     custom = 'custom'
     email = 'email'
@@ -192,9 +422,9 @@ class Kind(Enum):
 
 class V1CreateTicketDestinationDto(BaseModel):
     name: Annotated[str, Field(examples=['Zendesk Soporte Chile'], max_length=120)]
-    config: dict[str, Any]
+    config: Union[CustomTicketDestinationConfigDto, dict[str, Any]]
     """
-    Non-secret provider config (validated per kind).
+    Kind-specific destination configuration. Custom update is optional and explicit; omission never causes a second create.
     """
     credentials: dict[str, str]
     """
@@ -206,12 +436,15 @@ class V1CreateTicketDestinationDto(BaseModel):
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
-    kind: Kind
+    kind: Kind1
 
 
 class V1UpdateTicketDestinationDto(BaseModel):
     name: Annotated[Optional[str], Field(max_length=120)] = None
-    config: Optional[dict[str, Any]] = None
+    config: Optional[Union[CustomTicketDestinationConfigDto, dict[str, Any]]] = None
+    """
+    Kind-specific configuration including explicit custom update capability.
+    """
     credentials: Optional[dict[str, str]] = None
     """
     Present = credential rotation.
@@ -223,7 +456,7 @@ class V1UpdateTicketDestinationDto(BaseModel):
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
     enabled: Optional[bool] = None
-    kind: Optional[Kind] = None
+    kind: Optional[Kind1] = None
 
 
 class TestTicketDestinationBodyDTO(BaseModel):
@@ -246,7 +479,7 @@ class ActionPlanGroupConditionDto(BaseModel):
     """
 
 
-class Role(Enum):
+class Role1(Enum):
     admin = 'admin'
     assignee = 'assignee'
 
@@ -256,7 +489,7 @@ class ActionPlanGroupMemberDto(BaseModel):
     """
     Company member user id.
     """
-    role: Role
+    role: Role1
 
 
 class CreateActionPlanGroupDto(BaseModel):
@@ -343,7 +576,7 @@ class ReorderActionPlanTasksDto(BaseModel):
     """
 
 
-class Status(Enum):
+class Status1(Enum):
     todo = 'todo'
     in_progress = 'in_progress'
     done = 'done'
@@ -354,7 +587,7 @@ class UpdateActionPlanTaskDto(BaseModel):
     """
     New task text.
     """
-    status: Optional[Status] = None
+    status: Optional[Status1] = None
     assigneeId: Optional[str] = None
     """
     Group member responsible; null/"" clears the assignee.
@@ -417,7 +650,24 @@ class MoveWokuBodyDTO(BaseModel):
     """
 
 
+class CollectionKind(Enum):
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+
+    standalone = 'standalone'
+    flow = 'flow'
+
+
 class V1CreateTextnoteBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
     """
     Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
@@ -481,6 +731,14 @@ class Anonymous(Enum):
 
 
 class V1CreateVoicemailBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
     """
     Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
@@ -554,6 +812,14 @@ class V1RevokeApiKeyResultDto(BaseModel):
 
 
 class V1CreateNpsBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     score: Annotated[float, Field(examples=[9], ge=0.0, le=10.0)]
     """
     NPS score 0-10 (0-6 detractor, 7-8 passive, 9-10 promoter)
@@ -598,6 +864,14 @@ class V1CreateNpsTextnoteBodyDto(BaseModel):
 
 
 class V1CreateCsatBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     score: Annotated[float, Field(examples=[4], ge=1.0, le=5.0)]
     """
     CSAT satisfaction score 1-5
@@ -636,6 +910,14 @@ class V1CreateCsatTextnoteBodyDto(BaseModel):
 
 
 class V1CreateCesBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     score: Annotated[float, Field(examples=[4], ge=1.0, le=5.0)]
     """
     CES effort score 1-5
@@ -703,7 +985,7 @@ class V1CaptureRespondentDto(BaseModel):
     """
 
 
-class Kind2(Enum):
+class Kind3(Enum):
     woku = 'woku'
     nps = 'nps'
     csat = 'csat'
@@ -720,6 +1002,14 @@ class Language1(Enum):
 
 
 class V1CaptureBodyDto(BaseModel):
+    collectionKind: Optional[CollectionKind] = None
+    """
+    Collection provenance. Omitted historical inputs remain unknown and cannot start follow-up.
+    """
+    flowId: Optional[str] = None
+    """
+    Required for flow captures; validated against the company and instrument.
+    """
     dispatchToken: Annotated[Optional[str], Field(max_length=64)] = None
     """
     Opaque invitation or prepared journey-entry response token. Consumed after saving feedback; never stored on the review.
@@ -728,7 +1018,7 @@ class V1CaptureBodyDto(BaseModel):
     """
     Client-generated idempotency id
     """
-    kind: Annotated[Kind2, Field(examples=['woku'])]
+    kind: Annotated[Kind3, Field(examples=['woku'])]
     language: Optional[Language1] = None
     """
     Spoken language. Required when the capture includes an audio file.
@@ -753,7 +1043,7 @@ class V1CaptureBodyDto(BaseModel):
     respondent: Optional[V1CaptureRespondentDto] = None
 
 
-class Status1(Enum):
+class Status2(Enum):
     accepted = 'accepted'
 
 
@@ -762,15 +1052,15 @@ class V1CaptureResultDto(BaseModel):
     """
     Client submission id, echoed without replacing the server id.
     """
-    kind: Kind2
+    kind: Kind3
     remoteId: Optional[str] = None
     """
     Server id of the created feedback resource.
     """
-    status: Status1
+    status: Status2
 
 
-class Channel(Enum):
+class Channel1(Enum):
     """
     Delivery channel for the invitations
     """
@@ -789,7 +1079,7 @@ class Language2(Enum):
 
 
 class V1CreateNpsInvitationsBodyDto(BaseModel):
-    channel: Annotated[Channel, Field(examples=['whatsapp'])]
+    channel: Annotated[Channel1, Field(examples=['whatsapp'])]
     """
     Delivery channel for the invitations
     """
@@ -829,13 +1119,13 @@ class V1RejectedInvitationDto(BaseModel):
     """
 
 
-class Channel1(Enum):
+class Channel2(Enum):
     email = 'email'
     whatsapp = 'whatsapp'
 
 
 class V1InvitationsResultDto(BaseModel):
-    channel: Channel1
+    channel: Channel2
     accepted: list[str]
     """
     Recipients whose invitation was dispatched (or queued)
@@ -846,7 +1136,7 @@ class V1InvitationsResultDto(BaseModel):
     """
 
 
-class Channel2(Enum):
+class Channel3(Enum):
     """
     Delivery channel for the invitations
     """
@@ -856,7 +1146,7 @@ class Channel2(Enum):
 
 
 class V1CreateCsatInvitationsBodyDto(BaseModel):
-    channel: Annotated[Channel2, Field(examples=['whatsapp'])]
+    channel: Annotated[Channel3, Field(examples=['whatsapp'])]
     """
     Delivery channel for the invitations
     """
@@ -875,7 +1165,7 @@ class V1CreateCsatInvitationsBodyDto(BaseModel):
 
 
 class V1CreateCesInvitationsBodyDto(BaseModel):
-    channel: Annotated[Channel2, Field(examples=['whatsapp'])]
+    channel: Annotated[Channel3, Field(examples=['whatsapp'])]
     """
     Delivery channel for the invitations
     """
@@ -894,7 +1184,7 @@ class V1CreateCesInvitationsBodyDto(BaseModel):
 
 
 class V1CreateInvitationsBodyDto(BaseModel):
-    channel: Annotated[Channel2, Field(examples=['whatsapp'])]
+    channel: Annotated[Channel3, Field(examples=['whatsapp'])]
     """
     Delivery channel for the invitations
     """
@@ -1185,10 +1475,134 @@ class UpdateCesToolBodyDTO(BaseModel):
     localizedContent: Optional[list[CesToolLocalizedContentBodyDTO]] = None
 
 
+class Tool1(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    form = 'form'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class Tracker(BaseModel):
+    trackerId: Optional[str] = None
+    name: Optional[str] = None
+    value: Optional[str] = None
+
+
+class PublicTicketOriginDto(BaseModel):
+    tool: Tool1
+    refId: str
+    instrumentId: Optional[str] = None
+    instrumentName: Optional[str] = None
+    trackers: Optional[list[Tracker]] = None
+
+
+class State1(Enum):
+    not_applicable = 'not_applicable'
+    pending = 'pending'
+    initial_sent = 'initial_sent'
+    awaiting_detail = 'awaiting_detail'
+    closing = 'closing'
+    completed = 'completed'
+    timed_out = 'timed_out'
+    cancelled = 'cancelled'
+
+
+class EnrichmentState(Enum):
+    """
+    Current result of applying follow-up evidence to the ticket.
+    """
+
+    processing = 'processing'
+    applied = 'applied'
+    failed = 'failed'
+    skipped = 'skipped'
+
+
+class TicketFollowUpDto(BaseModel):
+    conversationId: Optional[str] = None
+    state: State1
+    reason: Optional[str] = None
+    availableSummaryVersion: Optional[float] = None
+    enrichmentState: Optional[EnrichmentState] = None
+    """
+    Current result of applying follow-up evidence to the ticket.
+    """
+    enrichmentReason: Optional[str] = None
+    """
+    Machine-readable reason for the enrichment result, without provider details or credentials.
+    """
+    appliedSummaryVersion: Optional[float] = None
+    """
+    Last summary version successfully applied to this ticket. Conversation completion alone does not imply enrichment.
+    """
+    enrichedAt: Optional[datetime] = None
+
+
 class Severity(Enum):
     high = 'high'
     medium = 'medium'
     low = 'low'
+
+
+class Score(BaseModel):
+    value: Optional[float] = None
+    max: Optional[float] = None
+    kind: Optional[str] = None
+    display: Optional[str] = None
+
+
+class CustomerComment(BaseModel):
+    text: Optional[str] = None
+    isAudio: Optional[bool] = None
+    audioUrl: Optional[str] = None
+    transcription: Optional[str] = None
+
+
+class Client(BaseModel):
+    clientId: Optional[str] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class PublicTicketDto(BaseModel):
+    field_id: Annotated[str, Field(alias='_id')]
+    code: Optional[str] = None
+    title: str
+    severity: Severity
+    destinationId: Optional[str] = None
+    origin: PublicTicketOriginDto
+    contentVersion: Annotated[float, Field(ge=1.0)]
+    """
+    Monotonic version of generated ticket content.
+    """
+    followUp: Optional[TicketFollowUpDto] = None
+    score: Optional[Score] = None
+    aiSummary: Optional[str] = None
+    aiCategory: Optional[str] = None
+    caseDescription: Optional[str] = None
+    historyHighlights: Optional[list[str]] = None
+    whatCustomerWants: Optional[str] = None
+    suggestedResolution: Optional[str] = None
+    language: Optional[str] = None
+    churnRisk: Optional[str] = None
+    criteria: Optional[list[str]] = None
+    historySnapshot: Optional[dict[str, Any]] = None
+    sentiment: Optional[str] = None
+    generatedByAI: Optional[bool] = None
+    customerComment: Optional[CustomerComment] = None
+    client: Optional[Client] = None
+    timeline: Optional[list[dict[str, Any]]] = None
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+
+
+class PublicTicketsPageDto(BaseModel):
+    data: list[PublicTicketDto]
+    total: float
+    page: float
+    limit: float
 
 
 class UpdateTicketBodyDTO(BaseModel):
@@ -1211,7 +1625,7 @@ class V1JourneyPendingMomentDto(BaseModel):
     name: Optional[str] = None
 
 
-class Status2(Enum):
+class Status3(Enum):
     pending = 'pending'
     active = 'active'
     sent = 'sent'
@@ -1245,7 +1659,7 @@ class ActivationSource(Enum):
 class V1JourneyMomentProgressDto(BaseModel):
     key: str
     name: str
-    status: Status2
+    status: Status3
     toolId: Optional[str] = None
     toolType: Optional[ToolType] = None
     toolScope: Optional[ToolScope] = None
@@ -1316,7 +1730,7 @@ class StopJourneyParticipationDto(BaseModel):
     reason: Annotated[Optional[str], Field(max_length=280)] = None
 
 
-class Mode(Enum):
+class Mode1(Enum):
     woku_signature = 'woku_signature'
     url_token = 'url_token'
     sender_hmac = 'sender_hmac'
@@ -1324,7 +1738,7 @@ class Mode(Enum):
 
 class V1JourneyConnectionDto(BaseModel):
     stageKey: str
-    mode: Mode
+    mode: Mode1
     configured: bool
     """
     Credential readiness, not proof of webhook delivery.
@@ -1404,7 +1818,7 @@ class JourneyPlanMemberDto(BaseModel):
     """
     Company member user id.
     """
-    role: Role
+    role: Role1
 
 
 class JourneyRecipientsDto(BaseModel):
@@ -1459,7 +1873,7 @@ class V1JourneySendWindowDto(BaseModel):
     timeZone: Annotated[str, Field(examples=['America/Santiago'])]
 
 
-class Mode1(Enum):
+class Mode2(Enum):
     """
     Verification configuration only. Set secret material through the credential endpoints.
     """
@@ -1480,7 +1894,7 @@ class SignedPayload(Enum):
 
 
 class V1JourneyVerificationDto(BaseModel):
-    mode: Mode1
+    mode: Mode2
     """
     Verification configuration only. Set secret material through the credential endpoints.
     """
@@ -1556,13 +1970,13 @@ class V1JourneyTriggerDto(BaseModel):
     """
 
 
-class Mode2(Enum):
+class Mode3(Enum):
     literal = 'literal'
     javascript = 'javascript'
 
 
 class V1JourneyTextValueDto(BaseModel):
-    mode: Mode2
+    mode: Mode3
     value: str
     """
     Literal (up to 200 characters) or bounded JavaScript function body (up to 2000). JavaScript receives payload and must return a string; no IO or imports.
@@ -1652,7 +2066,7 @@ class V1JourneyLegacyToolRefDto(BaseModel):
     id: str
 
 
-class Tool(Enum):
+class Tool2(Enum):
     woku = 'woku'
     csat = 'csat'
     ces = 'ces'
@@ -1668,7 +2082,7 @@ class ToolScope1(Enum):
     per_enrollment = 'per_enrollment'
 
 
-class Channel5(Enum):
+class Channel6(Enum):
     email = 'email'
     whatsapp_first = 'whatsapp_first'
 
@@ -1681,7 +2095,7 @@ class V1JourneyMomentReadDto(BaseModel):
     """
     Display order. Execution follows the trigger graph.
     """
-    tool: Tool
+    tool: Tool2
     toolScope: Optional[ToolScope1] = None
     """
     V2 defaults to shared within this moment. Dynamic webhook content requires per_enrollment.
@@ -1690,7 +2104,7 @@ class V1JourneyMomentReadDto(BaseModel):
     enabled: bool
     trigger: V1JourneyTriggerDto
     webhook: Optional[V1JourneyWebhookDto] = None
-    channel: Channel5
+    channel: Channel6
     sequence: V1JourneySequenceDto
     presentation: Optional[V1JourneyPresentationDto] = None
     fallbackAfterMs: Annotated[Optional[float], Field(ge=1.0)] = None
@@ -1741,7 +2155,7 @@ class V1JourneyMomentDto(BaseModel):
     """
     Display order. Execution follows the trigger graph.
     """
-    tool: Tool
+    tool: Tool2
     toolScope: Optional[ToolScope1] = None
     """
     V2 defaults to shared within this moment. Dynamic webhook content requires per_enrollment.
@@ -1750,7 +2164,7 @@ class V1JourneyMomentDto(BaseModel):
     enabled: bool
     trigger: V1JourneyTriggerDto
     webhook: Optional[V1JourneyWebhookDto] = None
-    channel: Channel5
+    channel: Channel6
     sequence: V1JourneySequenceDto
     presentation: Optional[V1JourneyPresentationDto] = None
     fallbackAfterMs: Annotated[Optional[float], Field(ge=1.0)] = None
@@ -1926,7 +2340,7 @@ class V1JourneyEventResponseDto(BaseModel):
 class JourneyEntryInfoDto(BaseModel):
     name: Optional[str] = None
     momentName: Optional[str] = None
-    tool: Tool
+    tool: Tool2
     requiresReference: bool
     """
     A case reference is required when later moments start on webhooks.
@@ -1945,7 +2359,7 @@ class PrepareJourneyEntryDto(BaseModel):
 
 class PreparedJourneyEntryDto(BaseModel):
     companyId: str
-    tool: Tool
+    tool: Tool2
     toolId: str
     token: str
     """

@@ -32,6 +32,7 @@ from .resources.action_plans import (
 from .resources.company import AsyncCompany, Company
 from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
+from .resources.follow_ups import AsyncFollowUps, FollowUps
 from .resources.forms import AsyncForms, Forms
 from .resources.journeys import AsyncJourneys, Journeys
 from .resources.media import AsyncMedia, Media
@@ -108,6 +109,7 @@ class Woku(BaseClient):
         self.action_plans = ActionPlans(self)
         self.action_plan_groups = ActionPlanGroups(self)
         self.tickets = Tickets(self)
+        self.follow_ups = FollowUps(self)
         self.ticket_destinations = TicketDestinations(self)
         self.dispatches = Dispatches(self)
         self.reports = Reports(self)
@@ -281,6 +283,7 @@ class AsyncWoku(BaseClient):
         self.action_plans = AsyncActionPlans(self)
         self.action_plan_groups = AsyncActionPlanGroups(self)
         self.tickets = AsyncTickets(self)
+        self.follow_ups = AsyncFollowUps(self)
         self.ticket_destinations = AsyncTicketDestinations(self)
         self.dispatches = AsyncDispatches(self)
         self.reports = AsyncReports(self)
