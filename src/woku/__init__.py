@@ -46,10 +46,18 @@ from .models import (
     TicketOrigin,
     TicketOriginTracker,
 )
+from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
+from .resources.tools import AsyncTools, AsyncToolsPage, Tools, ToolsPage
 from .types import CustomTicketDestinationConfig, CustomTicketUpdateConfig
 
 __all__ = [
+    "AsyncFolders",
+    "AsyncTools",
+    "AsyncToolsPage",
+    "Folders",
+    "Tools",
+    "ToolsPage",
     "AsyncPage",
     "CustomTicketDestinationConfig",
     "CustomTicketUpdateConfig",

@@ -336,6 +336,52 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Folders and tools
+
+One folder tree holds wokus and NPS, CSAT and CES tools together:
+
+```python
+folder = woku.folders.create({"name": "Post-sale"})
+
+# Create a tool already inside a folder.
+woku.csat_tools.create(
+    {
+        "name": "Delivery",
+        "question": "How satisfied are you with your delivery?",
+        "folderId": folder["id"],
+    }
+)
+
+# One list for every tool type; iterating follows the cursor across pages.
+for tool in woku.tools.list({"folderId": folder["id"], "types": ["csat", "nps"]}):
+    print(tool["type"], tool["name"], tool["reviewCount"], tool["headline"]["value"])
+found = woku.tools.list({"q": "delivery", "scope": "company"})
+
+# Headline figures per type (native scales, never mixed), company or folder.
+stats = woku.tools.stats({"folderId": folder["id"]})
+
+# Move items of mixed types, or send them to the root with folderId None.
+woku.tools.move(
+    {
+        "items": [{"type": "csat", "id": "csat_tool_id"}, {"type": "woku", "id": "woku_id"}],
+        "folderId": folder["id"],
+    }
+)
+woku.nps_tools.move("nps_tool_id", {"folderId": None})
+
+# AI report and CSV over every tool of the folder and its subfolders.
+report = woku.folders.report(folder["id"], {"lang": "en"})
+csv_text = woku.folders.csv(folder["id"])
+
+# Deleting a folder never deletes its content: it moves up to the parent.
+woku.folders.delete(folder["id"])
+```
+
+`woku.folders` also has `list`, `get`, `update` and `move`. The tools
+resources (`nps_tools`, `csat_tools`, `ces_tools`) accept `folderId` on `create`,
+return `folderId` on every tool and have `move(tool_id, {"folderId": ...})`.
+`AsyncWoku` mirrors all of it (`async for tool in await woku.tools.list()`).
+
 ## Pagination
 
 List methods return a page you can iterate item by item across pages, or walk
@@ -392,7 +438,7 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
 `ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
-`journeys`.
+`journeys`, `folders`, `tools`.
 
 ## License
 

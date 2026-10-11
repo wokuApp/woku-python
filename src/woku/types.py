@@ -22,6 +22,10 @@ UpdateTrackerParams = Union[_g.UpdateExternalTrackerDefinitionDTO, JsonMapping]
 SearchEntitiesByTrackersParams = Union[_g.SearchEntitiesByTrackersDTO, JsonMapping]
 AssignTrackerByNameParams = Union[_g.AssignExternalTrackerByNameDTO, JsonMapping]
 
+CreateFolderParams = Union[_g.CreateFolderBodyDTO, JsonMapping]
+UpdateFolderParams = Union[_g.UpdateFolderBodyDTO, JsonMapping]
+MoveToolItemsParams = Union[_g.MoveToolItemsBodyDTO, JsonMapping]
+
 CreateNpsToolParams = Union[_g.CreateNpsToolBodyDTO, JsonMapping]
 UpdateNpsToolParams = Union[_g.UpdateNpsToolBodyDTO, JsonMapping]
 CreateCsatToolParams = Union[_g.CreateCsatToolBodyDTO, JsonMapping]

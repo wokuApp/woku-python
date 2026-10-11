@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+### Folders and tools
+
+- New `folders` resource: `list`, `get`, `create`, `update`, `move`, `delete`
+  (content moves up to the parent), `report` and `csv` over every woku, NPS,
+  CSAT and CES tool of the folder and its subfolders.
+- New `tools` resource: cursor-paginated `list` across wokus and NPS, CSAT and CES
+  with search and filters, `stats` per type in native scales and batch `move`.
+- `folderId` on NPS, CSAT and CES tool creation and responses, plus
+  `move(tool_id, {"folderId": ...})`.
+- Sync and async twins, regenerated models from the public OpenAPI, contract
+  tests and an example. Requires the server release that ships these endpoints.
+
 ## 0.3.0
 
 ### Customer journeys v3 and SDK v4

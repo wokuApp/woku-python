@@ -6,7 +6,8 @@ mutations use the plural (``/v1/nps-tools``), matching the server routes.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote
 
 from .._options import RequestOptions
@@ -68,6 +69,20 @@ class NpsTools:
             options=options,
         )
 
+    def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> NpsTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return self._client.request(
+            "patch",
+            f"/v1/nps-tools/{quote(tool_id, safe='')}/move",
+            body=body,
+            options=options,
+        )
+
     def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
@@ -110,6 +125,20 @@ class CsatTools:
         return self._client.request(
             "patch",
             f"/v1/csat-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
+        )
+
+    def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> CsatTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return self._client.request(
+            "patch",
+            f"/v1/csat-tools/{quote(tool_id, safe='')}/move",
             body=body,
             options=options,
         )
@@ -160,6 +189,20 @@ class CesTools:
             options=options,
         )
 
+    def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> CesTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return self._client.request(
+            "patch",
+            f"/v1/ces-tools/{quote(tool_id, safe='')}/move",
+            body=body,
+            options=options,
+        )
+
     def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
@@ -202,6 +245,20 @@ class AsyncNpsTools:
         return await self._client.request(
             "patch",
             f"/v1/nps-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
+        )
+
+    async def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> NpsTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return await self._client.request(
+            "patch",
+            f"/v1/nps-tools/{quote(tool_id, safe='')}/move",
             body=body,
             options=options,
         )
@@ -254,6 +311,20 @@ class AsyncCsatTools:
             options=options,
         )
 
+    async def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> CsatTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return await self._client.request(
+            "patch",
+            f"/v1/csat-tools/{quote(tool_id, safe='')}/move",
+            body=body,
+            options=options,
+        )
+
     async def delete(
         self, tool_id: str, options: RequestOptions | None = None
     ) -> DeletedResult:
@@ -296,6 +367,20 @@ class AsyncCesTools:
         return await self._client.request(
             "patch",
             f"/v1/ces-tools/{quote(tool_id, safe='')}",
+            body=body,
+            options=options,
+        )
+
+    async def move(
+        self,
+        tool_id: str,
+        body: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> CesTool:
+        """Move the tool into a folder, or to the root with ``folderId`` None."""
+        return await self._client.request(
+            "patch",
+            f"/v1/ces-tools/{quote(tool_id, safe='')}/move",
             body=body,
             options=options,
         )
