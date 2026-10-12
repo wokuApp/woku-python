@@ -32,8 +32,10 @@ from .resources.action_plans import (
 from .resources.company import AsyncCompany, Company
 from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
+from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
 from .resources.forms import AsyncForms, Forms
+from .resources.journey_folders import AsyncJourneyFolders, JourneyFolders
 from .resources.journeys import AsyncJourneys, Journeys
 from .resources.media import AsyncMedia, Media
 from .resources.quarantines import AsyncQuarantines, Quarantines
@@ -45,6 +47,7 @@ from .resources.tickets import (
     TicketDestinations,
     Tickets,
 )
+from .resources.tools import AsyncTools, Tools
 from .resources.trackers import AsyncTrackers, Trackers
 from .resources.voc_tools import (
     AsyncCesTools,
@@ -117,6 +120,9 @@ class Woku(BaseClient):
         self.journeys = Journeys(self)
         self.media = Media(self)
         self.quarantines = Quarantines(self)
+        self.folders = Folders(self)
+        self.tools = Tools(self)
+        self.journey_folders = JourneyFolders(self)
 
     def request(
         self,
@@ -128,8 +134,9 @@ class Woku(BaseClient):
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
+        binary: bool = False,
     ) -> Any:
-        """Issue one request and return the parsed JSON body."""
+        """Issue one request; return the parsed JSON body (raw bytes if ``binary``)."""
         opts: RequestOptions = options or {}
         merged_query = clean_query(
             {**(dict(query) if query else {}), **dict(opts.get("params") or {})}
@@ -183,7 +190,7 @@ class Woku(BaseClient):
 
             status = response.status_code
             if 200 <= status < 300:
-                return parse_body(response.text)
+                return response.content if binary else parse_body(response.text)
             api_error = WokuAPIError.from_response(
                 status,
                 parse_body(response.text),
@@ -291,6 +298,9 @@ class AsyncWoku(BaseClient):
         self.journeys = AsyncJourneys(self)
         self.media = AsyncMedia(self)
         self.quarantines = AsyncQuarantines(self)
+        self.folders = AsyncFolders(self)
+        self.tools = AsyncTools(self)
+        self.journey_folders = AsyncJourneyFolders(self)
 
     async def request(
         self,
@@ -302,8 +312,9 @@ class AsyncWoku(BaseClient):
         idempotent: bool = False,
         query: Mapping[str, Any] | None = None,
         options: RequestOptions | None = None,
+        binary: bool = False,
     ) -> Any:
-        """Issue one request and return the parsed JSON body."""
+        """Issue one request; return the parsed JSON body (raw bytes if ``binary``)."""
         opts: RequestOptions = options or {}
         merged_query = clean_query(
             {**(dict(query) if query else {}), **dict(opts.get("params") or {})}
@@ -357,7 +368,7 @@ class AsyncWoku(BaseClient):
 
             status = response.status_code
             if 200 <= status < 300:
-                return parse_body(response.text)
+                return response.content if binary else parse_body(response.text)
             api_error = WokuAPIError.from_response(
                 status,
                 parse_body(response.text),

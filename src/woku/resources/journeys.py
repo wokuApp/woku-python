@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote, urljoin
 
 from pydantic import BaseModel
+from typing_extensions import NotRequired
 
 from .._exceptions import WokuError
 from .._options import RequestOptions
@@ -23,7 +24,19 @@ if TYPE_CHECKING:
 # Pydantic request models. Runtime responses remain ordinary dictionaries.
 from .._generated import journeys as _contracts
 
-Journey = _contracts.V1JourneyResponseDto
+
+class Journey(_contracts.V1JourneyResponseDto):
+    """A journey as returned by ``/v1/journeys``.
+
+    ``folderId`` and ``momentFolders`` (moment key to folder id) point at the
+    folders that hold the journey's tools once the company organized its journeys
+    in folders; they are ``None`` and ``{}`` before that. Reads only.
+    """
+
+    folderId: NotRequired[str | None]
+    momentFolders: NotRequired[dict[str, str]]
+
+
 CreatedJourney = _contracts.V1CreatedJourneyResponseDto
 JourneyEnrollment = _contracts.V1JourneyParticipationDto
 JourneyEnrollmentPage = _contracts.V1JourneyParticipationPageDto

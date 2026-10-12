@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.0
+
+### Folders and tools
+
+- New `folders` resource: `list`, `get`, `create`, `update`, `move`, `delete`
+  (content moves up to the parent), `report` and `csv` over every woku, NPS,
+  CSAT and CES tool of the folder and its subfolders.
+- New `tools` resource: cursor-paginated `list` across wokus and NPS, CSAT and CES
+  with search and filters, `stats` per type in native scales and batch `move`.
+- `folderId` on NPS, CSAT and CES tool creation and responses, plus
+  `move(tool_id, {"folderId": ...})`.
+- New `journey_folders` resource (`status`, `organize`), `folderId` and `momentFolders`
+  on journeys, and `origin` on folders.
+- Folders expose `whatsappAlertRecipients` (settable on `folders.update`): the WhatsApp
+  numbers alerted when a comment on any woku, NPS, CSAT or CES tool of the folder
+  is an improvement.
+- `folders.pdf` returns the folder report as PDF bytes (per-type breakdown on each
+  native scale), and `tools.list` pages the folders with `foldersLimit`
+  (`has_more_folders()` and `get_more_folders()`, sync and async).
+- `flows` is no longer read-only: `create`, `update`, `delete` and ordered `steps`
+  (woku, NPS, CSAT, CES) on every flow.
+- `folders.metrics` (per-tool figures for a period against the one before it, daily
+  sums and the histogram of scores), `trackers` on `tools.list` and
+  `integrationProvider` on folders, sync and async.
+- Sync and async twins, regenerated models from the public OpenAPI, contract
+  tests and an example. Requires the server release that ships these endpoints.
+
 ## 0.3.0
 
 ### Customer journeys v3 and SDK v4

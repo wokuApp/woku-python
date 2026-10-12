@@ -336,6 +336,117 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Flows
+
+A flow is an ordered sequence of steps, each a woku or an NPS, CSAT or CES tool,
+that a respondent answers one after the other. Flows live outside folders.
+
+```python
+flow = woku.flows.create(
+    {
+        "name": "Post-purchase",
+        "steps": [
+            {"type": "nps", "toolId": "nps_tool_id"},
+            {"type": "csat", "toolId": "csat_tool_id"},
+            {"type": "woku", "toolId": "woku_id"},
+        ],
+    }
+)
+woku.flows.update(flow["_id"], {"steps": [{"type": "csat", "toolId": "csat_tool_id"}]})
+for f in woku.flows.list():
+    print(f["name"], len(f["steps"]))
+woku.flows.delete(flow["_id"])  # its tools and responses stay
+```
+
+Use 1 to 20 steps, each tool once and all yours. For an `nps` step, your company
+id as `toolId` means the company-level NPS. `flows.get(flow_id)` returns the flow
+data (steps with their tools, wokus and branding).
+
+### Folders and tools
+
+One folder tree holds wokus and NPS, CSAT and CES tools together:
+
+```python
+folder = woku.folders.create({"name": "Post-sale"})
+
+# Create a tool already inside a folder.
+woku.csat_tools.create(
+    {
+        "name": "Delivery",
+        "question": "How satisfied are you with your delivery?",
+        "folderId": folder["id"],
+    }
+)
+
+# One list for every tool type; iterating follows the cursor across pages.
+for tool in woku.tools.list({"folderId": folder["id"], "types": ["csat", "nps"]}):
+    print(tool["type"], tool["name"], tool["reviewCount"], tool["headline"]["value"])
+found = woku.tools.list({"q": "delivery", "scope": "company"})
+# Tracker chips ("name:value"): a tool matches when it has every one. Company-wide.
+tagged = woku.tools.list({"trackers": ["TRR:00482"]})
+
+# "See more" for folders: foldersLimit pages the folders of the level (omit it
+# to receive all of them). The tools keep their own cursor.
+first = woku.tools.list({"foldersLimit": 12})
+if first.has_more_folders():
+    more = first.get_more_folders()  # only the next folders, no tools
+
+# Headline figures per type (native scales, never mixed), company or folder.
+stats = woku.tools.stats({"folderId": folder["id"]})
+
+# Move items of mixed types, or send them to the root with folderId None.
+woku.tools.move(
+    {
+        "items": [
+            {"type": "csat", "id": "csat_tool_id"},
+            {"type": "woku", "id": "woku_id"},
+        ],
+        "folderId": folder["id"],
+    }
+)
+woku.nps_tools.move("nps_tool_id", {"folderId": None})
+
+# AI report, CSV and PDF over every tool of the folder and its subfolders.
+report = woku.folders.report(folder["id"], {"lang": "en"})
+pdf_bytes = woku.folders.pdf(folder["id"], {"lang": "en"})  # raw bytes, write to a file
+csv_text = woku.folders.csv(folder["id"])
+
+# Per-tool figures for a period against the one before it (7, 30 or 90 days, or 0
+# for the whole history), with the daily sums and the histogram of scores. Every
+# type keeps its own scale: NPS -100..100, CSAT %, CES and stars 1-5.
+metrics = woku.folders.metrics(folder["id"], {"days": 30})
+for tool in metrics["tools"]:
+    print(tool["name"], tool["current"]["headline"]["value"])
+
+# WhatsApp numbers alerted when a comment on any tool of the folder is an
+# improvement (wokus, NPS, CSAT and CES). The list replaces the previous one.
+woku.folders.update(
+    folder["id"],
+    {"whatsappAlertRecipients": [{"whatsappId": "56912345678", "name": "Ana"}]},
+)
+
+# Deleting a folder never deletes its content: it moves up to the parent.
+woku.folders.delete(folder["id"])
+```
+
+```python
+# Keep customer journeys in folders: Viajes > journey > moment.
+status = woku.journey_folders.status()  # enabled, organizing, pending (journeys, tools)
+if not status["enabled"]:
+    woku.journey_folders.organize()  # background pass; ConflictError (409) while running
+
+journey = woku.journeys.get("journey_id")
+print(journey.get("folderId"), journey.get("momentFolders"))  # moment key -> folder id
+```
+
+Folders created by woku report their `origin` (`journeys-root`, `journey`,
+`journey-moment` or `integration`); your own folders have `origin` `None`.
+
+`woku.folders` also has `list`, `get`, `update` and `move`. The tools
+resources (`nps_tools`, `csat_tools`, `ces_tools`) accept `folderId` on `create`,
+return `folderId` on every tool and have `move(tool_id, {"folderId": ...})`.
+`AsyncWoku` mirrors all of it (`async for tool in await woku.tools.list()`).
+
 ## Pagination
 
 List methods return a page you can iterate item by item across pages, or walk
@@ -392,7 +503,7 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
 `ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
-`journeys`.
+`journeys`, `folders`, `tools`, `journey_folders`.
 
 ## License
 

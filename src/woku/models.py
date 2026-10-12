@@ -48,6 +48,7 @@ class NpsTool(TypedDict, total=False):
     """NPS tool definition (curated, no internal fields)."""
 
     _id: str
+    folderId: str | None
     name: str
     npsMessage: str
     audienceType: str
@@ -61,6 +62,7 @@ class CsatTool(TypedDict, total=False):
     """CSAT tool definition (curated)."""
 
     _id: str
+    folderId: str | None
     name: str
     question: str
     subject: str
@@ -74,6 +76,7 @@ class CesTool(TypedDict, total=False):
     """CES tool definition (curated)."""
 
     _id: str
+    folderId: str | None
     name: str
     question: str
     action: str
@@ -344,3 +347,169 @@ class ApiKeyResult(TypedDict, total=False):
     """Rotated secret key."""
 
     secretKey: str
+
+
+ToolType = Literal["woku", "nps", "csat", "ces"]
+
+
+class ToolHeadline(TypedDict, total=False):
+    """Headline figure of a tool, always in its native scale (never mixed)."""
+
+    kind: Literal["stars", "nps", "csat", "ces"]
+    #: Stars 1-5, NPS -100..100, CSAT satisfied %, CES mean 1-5; None without responses.
+    value: float | None
+    scale: str
+
+
+class ToolItem(TypedDict, total=False):
+    """A woku, NPS, CSAT or CES tool as listed by ``tools.list``."""
+
+    type: ToolType
+    id: str
+    name: str
+    folderId: str | None
+    createdAt: str | None
+    reviewCount: int
+    lastResponseAt: str | None
+    headline: ToolHeadline
+
+
+class FolderStats(TypedDict, total=False):
+    """Subtree figures of a folder."""
+
+    toolCounts: dict[str, int]
+    subfolderCount: int
+    reviewCount: int
+
+
+class Folder(TypedDict, total=False):
+    """A folder with its breadcrumb path and subtree stats."""
+
+    id: str
+    name: str
+    color: str | None
+    parentFolderId: str | None
+    #: Breadcrumb from the root, for example ``Journeys > Post-sale``.
+    path: str
+    #: System folder kind (``journeys-root``, ``journey``, ``journey-moment`` or
+    #: ``integration``); None for a folder you created.
+    origin: str | None
+    #: Provider of an integration folder (``shopify``, ``pancake``); None otherwise.
+    integrationProvider: str | None
+    #: WhatsApp numbers alerted when a comment of any tool in the folder is an
+    #: improvement: ``whatsappId`` (no leading +), ``name`` and ``sources`` (which
+    #: of ``woku``, ``nps``, ``csat`` and ``ces`` alert that number).
+    whatsappAlertRecipients: list[dict[str, Any]]
+    createdAt: str | None
+    stats: FolderStats
+
+
+class ToolWindow(TypedDict, total=False):
+    """One window (the period, or the one before it) of one tool."""
+
+    count: int
+    headline: ToolHeadline
+    #: Share (0-100) of positive responses (4-5, or NPS promoters); None without any.
+    positive: int | None
+    #: Share (0-100) of negative responses (1-2, or NPS detractors); None without any.
+    negative: int | None
+    #: The raw counts and score sum behind the shares, to combine tools exactly.
+    positiveCount: int
+    negativeCount: int
+    scoreSum: int
+
+
+class ToolMetrics(TypedDict, total=False):
+    """Per-tool figures of ``folders.metrics``: the period against the one before."""
+
+    type: str
+    id: str
+    name: str
+    #: Responses ever received.
+    totalResponses: int
+    lastResponseAt: str | None
+    current: ToolWindow
+    previous: ToolWindow
+
+
+class DailyPoint(TypedDict, total=False):
+    """Sums of one day (UTC) and tool type, enough to rebuild any score."""
+
+    date: str
+    type: str
+    count: int
+    scoreSum: int
+    positive: int
+    negative: int
+
+
+class FolderToolMetrics(TypedDict, total=False):
+    """Result of ``folders.metrics``."""
+
+    #: Period in days; 0 is the whole history (every ``previous`` window is empty).
+    days: int
+    tools: list[ToolMetrics]
+    #: Daily sums of both windows (2 x ``days``).
+    daily: list[DailyPoint]
+    #: Responses per score in the period: 0-10 for NPS, 1-5 for the rest.
+    distribution: dict[str, list[int]]
+
+
+class ToolTypeStats(TypedDict, total=False):
+    """Headline figures of one tool type for the company or a folder."""
+
+    toolCount: int
+    reviewCount: int
+    headline: ToolHeadline
+    lastResponseAt: str | None
+    #: NPS only: promoters, passives and detractors.
+    distribution: dict[str, int]
+    #: Set (to True) instead of the figures when this type failed to compute.
+    error: bool
+
+
+#: Figures per type; a type that fails reports ``{"error": True}``.
+ToolsStats = dict[str, ToolTypeStats]
+
+
+class MoveResult(TypedDict, total=False):
+    """Result of ``tools.move``."""
+
+    moved: int
+    folderId: str | None
+    items: list[dict[str, str]]
+
+
+class JourneyFoldersStatus(TypedDict, total=False):
+    """Whether journeys are kept in folders (``Viajes > journey > moment``)."""
+
+    enabled: bool
+    enabledAt: str | None
+    organizedAt: str | None
+    #: True while the one-off organization runs in the background.
+    organizing: bool
+    #: Journeys and tools still without a folder.
+    pending: dict[str, int]
+
+
+class FlowStep(TypedDict, total=False):
+    """One step of a flow: the tool the respondent answers at that point."""
+
+    type: ToolType
+    #: Tool id. For an ``nps`` step, your company id means the company-level NPS.
+    toolId: str
+
+
+class Flow(TypedDict, total=False):
+    """A survey flow: an ordered sequence of woku, NPS, CSAT and CES steps."""
+
+    _id: str
+    name: str
+    #: Ordered steps. Flows live outside folders.
+    steps: list[FlowStep]
+    #: Woku ids of the ``woku`` steps, in order (kept for compatibility).
+    wokusIds: list[str]
+    npsToolId: str | None
+    companyIdNps: str | None
+    createdAt: str
+    updatedAt: str

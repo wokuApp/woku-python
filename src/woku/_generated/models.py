@@ -1232,6 +1232,46 @@ class V1CreateFormResponseBodyDto(BaseModel):
     """
 
 
+class Type1(Enum):
+    """
+    Kind of tool the respondent answers in this step.
+    """
+
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class FlowStepBodyDTO(BaseModel):
+    type: Type1
+    """
+    Kind of tool the respondent answers in this step.
+    """
+    toolId: str
+    """
+    Tool id (woku, NPS tool, CSAT tool or CES tool). For an nps step, your company id means the company-level NPS.
+    """
+
+
+class CreateFlowBodyDTO(BaseModel):
+    name: Annotated[str, Field(examples=['Post-purchase journey'], max_length=140)]
+    steps: Annotated[list[FlowStepBodyDTO], Field(max_length=20, min_length=1)]
+    """
+    Ordered steps. A tool can appear once. Flows live outside folders.
+    """
+
+
+class UpdateFlowBodyDTO(BaseModel):
+    name: Annotated[Optional[str], Field(max_length=140)] = None
+    steps: Annotated[
+        Optional[list[FlowStepBodyDTO]], Field(max_length=20, min_length=1)
+    ] = None
+    """
+    The new full ordered list of steps.
+    """
+
+
 class NpsToolLocalizedContentBodyDTO(BaseModel):
     locale: Annotated[Locale, Field(examples=['en'])]
     npsMessage: Annotated[
@@ -1258,6 +1298,10 @@ class DefaultLocale1(Enum):
 
 
 class CreateNpsToolBodyDTO(BaseModel):
+    folderId: Optional[str] = None
+    """
+    Folder to create the tool in. Must belong to your company. Omit for the root.
+    """
     name: Annotated[str, Field(examples=['Post-Purchase Survey'], max_length=140)]
     """
     Tool name for identification.
@@ -1313,6 +1357,13 @@ class UpdateNpsToolBodyDTO(BaseModel):
     localizedContent: Optional[list[NpsToolLocalizedContentBodyDTO]] = None
 
 
+class MoveToolBodyDTO(BaseModel):
+    folderId: str
+    """
+    Target folder id, or null to move the tool to the root.
+    """
+
+
 class CsatToolLocalizedContentBodyDTO(BaseModel):
     locale: Annotated[Locale, Field(examples=['en'])]
     question: Annotated[
@@ -1344,6 +1395,10 @@ class DefaultLocale3(Enum):
 
 
 class CreateCsatToolBodyDTO(BaseModel):
+    folderId: Optional[str] = None
+    """
+    Folder to create the tool in. Must belong to your company. Omit for the root.
+    """
     name: Annotated[str, Field(examples=['Post-Purchase CSAT'], max_length=140)]
     """
     Tool name for identification.
@@ -1425,6 +1480,10 @@ class DefaultLocale5(Enum):
 
 
 class CreateCesToolBodyDTO(BaseModel):
+    folderId: Optional[str] = None
+    """
+    Folder to create the tool in. Must belong to your company. Omit for the root.
+    """
     name: Annotated[str, Field(examples=['Post-Purchase Effort'], max_length=140)]
     """
     Tool name for identification.
@@ -1931,7 +1990,7 @@ class V1JourneyPayloadMapDto(BaseModel):
     ] = None
 
 
-class Type1(Enum):
+class Type2(Enum):
     manual = 'manual'
     event = 'event'
     webhook = 'webhook'
@@ -1945,7 +2004,7 @@ class Anchor(Enum):
 
 
 class V1JourneyTriggerDto(BaseModel):
-    type: Type1
+    type: Type2
     event: Optional[str] = None
     """
     Legacy event trigger name. Reserved journey events cannot be emitted.
@@ -2052,7 +2111,7 @@ class V1JourneyPresentationDto(BaseModel):
     copy_: Annotated[Optional[V1JourneyLocaleDto], Field(alias='copy')] = None
 
 
-class Type2(Enum):
+class Type3(Enum):
     csat = 'csat'
     ces = 'ces'
     woku = 'woku'
@@ -2062,7 +2121,7 @@ class Type2(Enum):
 
 
 class V1JourneyLegacyToolRefDto(BaseModel):
-    type: Type2
+    type: Type3
     id: str
 
 
@@ -2335,6 +2394,74 @@ class V1EmitJourneyEventBodyDto(BaseModel):
 
 class V1JourneyEventResponseDto(BaseModel):
     journeys: float
+
+
+class CreateFolderBodyDTO(BaseModel):
+    name: Annotated[str, Field(examples=['Post-sale'], max_length=30, min_length=2)]
+    parentFolderId: Optional[str] = None
+    """
+    Parent folder. Omit to create the folder at the root.
+    """
+    color: Annotated[Optional[str], Field(examples=['#3498db'])] = None
+
+
+class Source1(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class WhatsappAlertRecipientDTO(BaseModel):
+    whatsappId: Annotated[str, Field(examples=['56912345678'])]
+    """
+    E.164 phone number without the leading +.
+    """
+    name: Annotated[str, Field(examples=['Ana (support)'], max_length=60)]
+    sources: Optional[list[Source1]] = None
+    """
+    Kinds of comment that alert this number. Defaults to all four.
+    """
+
+
+class UpdateFolderBodyDTO(BaseModel):
+    name: Annotated[Optional[str], Field(max_length=30, min_length=2)] = None
+    color: Annotated[Optional[str], Field(examples=['#3498db'])] = None
+    """
+    Hex color, or null to clear it.
+    """
+    whatsappAlertRecipients: Optional[list[WhatsappAlertRecipientDTO]] = None
+    """
+    Replaces the WhatsApp numbers alerted when a comment of any tool in this folder is an improvement (wokus, NPS, CSAT, CES). Send [] to clear.
+    """
+
+
+class MoveFolderBodyDTO(BaseModel):
+    parentFolderId: str
+    """
+    New parent folder, or null to move the folder to the root. A folder cannot move into itself or one of its subfolders.
+    """
+
+
+class Type4(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+    folder = 'folder'
+
+
+class MoveItemDTO(BaseModel):
+    type: Type4
+    id: str
+
+
+class MoveToolItemsBodyDTO(BaseModel):
+    items: Annotated[list[MoveItemDTO], Field(max_length=200)]
+    folderId: str
+    """
+    Destination folder. `null` moves the items to the root.
+    """
 
 
 class JourneyEntryInfoDto(BaseModel):
