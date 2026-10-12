@@ -18,6 +18,14 @@ CASES = [
     ("folders", "get", ["f1"], "GET", "/v1/folders/f1", "/v1/folders/{id}"),
     (
         "folders",
+        "metrics",
+        ["f1", {"days": 7}],
+        "GET",
+        "/v1/folders/f1/metrics",
+        "/v1/folders/{id}/metrics",
+    ),
+    (
+        "folders",
         "create",
         [{"name": "Post-sale"}],
         "POST",
@@ -191,6 +199,44 @@ def test_folder_create_is_idempotent_and_csv_returns_text() -> None:
         woku.folders.create({"name": "Post-sale"})
         assert keys[0]
         assert woku.folders.csv("f1") == "Carpeta,Tipo\nViajes,NPS"
+
+
+@respx.mock
+def test_folder_metrics_sends_the_period_as_days() -> None:
+    reply = {
+        "days": 0,
+        "tools": [],
+        "daily": [],
+        "distribution": {"woku": [], "nps": [], "csat": [], "ces": []},
+    }
+    route = respx.get("https://api.test/v1/folders/f1/metrics").mock(
+        return_value=httpx.Response(200, json=reply)
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        assert woku.folders.metrics("f1", {"days": 0}) == reply
+    assert route.calls[0].request.url.params["days"] == "0"
+
+
+@respx.mock
+def test_tools_list_sends_every_tracker_chip_as_a_repeated_parameter() -> None:
+    route = respx.get("https://api.test/v1/tools").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "folders": [],
+                "foldersNextCursor": None,
+                "tools": [],
+                "nextCursor": None,
+                "facets": {"types": {}},
+            },
+        )
+    )
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        woku.tools.list({"trackers": ["TRR:00482", "OC:2024"]})
+    assert route.calls[0].request.url.params.get_list("trackers") == [
+        "TRR:00482",
+        "OC:2024",
+    ]
 
 
 PDF_BYTES = b"%PDF-1.4\x00\xff\xfe binary"

@@ -21,6 +21,9 @@
   (`has_more_folders()` and `get_more_folders()`, sync and async).
 - `flows` is no longer read-only: `create`, `update`, `delete` and ordered `steps`
   (woku, NPS, CSAT, CES) on every flow.
+- `folders.metrics` (per-tool figures for a period against the one before it, daily
+  sums and the histogram of scores), `trackers` on `tools.list` and
+  `integrationProvider` on folders, sync and async.
 - Sync and async twins, regenerated models from the public OpenAPI, contract
   tests and an example. Requires the server release that ships these endpoints.
 

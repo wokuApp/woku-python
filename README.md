@@ -382,6 +382,8 @@ woku.csat_tools.create(
 for tool in woku.tools.list({"folderId": folder["id"], "types": ["csat", "nps"]}):
     print(tool["type"], tool["name"], tool["reviewCount"], tool["headline"]["value"])
 found = woku.tools.list({"q": "delivery", "scope": "company"})
+# Tracker chips ("name:value"): a tool matches when it has every one. Company-wide.
+tagged = woku.tools.list({"trackers": ["TRR:00482"]})
 
 # "See more" for folders: foldersLimit pages the folders of the level (omit it
 # to receive all of them). The tools keep their own cursor.
@@ -408,6 +410,13 @@ woku.nps_tools.move("nps_tool_id", {"folderId": None})
 report = woku.folders.report(folder["id"], {"lang": "en"})
 pdf_bytes = woku.folders.pdf(folder["id"], {"lang": "en"})  # raw bytes, write to a file
 csv_text = woku.folders.csv(folder["id"])
+
+# Per-tool figures for a period against the one before it (7, 30 or 90 days, or 0
+# for the whole history), with the daily sums and the histogram of scores. Every
+# type keeps its own scale: NPS -100..100, CSAT %, CES and stars 1-5.
+metrics = woku.folders.metrics(folder["id"], {"days": 30})
+for tool in metrics["tools"]:
+    print(tool["name"], tool["current"]["headline"]["value"])
 
 # WhatsApp numbers alerted when a comment on any tool of the folder is an
 # improvement (wokus, NPS, CSAT and CES). The list replaces the previous one.

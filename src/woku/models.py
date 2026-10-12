@@ -394,12 +394,61 @@ class Folder(TypedDict, total=False):
     #: System folder kind (``journeys-root``, ``journey``, ``journey-moment`` or
     #: ``integration``); None for a folder you created.
     origin: str | None
+    #: Provider of an integration folder (``shopify``, ``pancake``); None otherwise.
+    integrationProvider: str | None
     #: WhatsApp numbers alerted when a comment of any tool in the folder is an
     #: improvement: ``whatsappId`` (no leading +), ``name`` and ``sources`` (which
     #: of ``woku``, ``nps``, ``csat`` and ``ces`` alert that number).
     whatsappAlertRecipients: list[dict[str, Any]]
     createdAt: str | None
     stats: FolderStats
+
+
+class ToolWindow(TypedDict, total=False):
+    """One window (the period, or the one before it) of one tool."""
+
+    count: int
+    headline: ToolHeadline
+    #: Share (0-100) of positive responses (4-5, or NPS promoters); None without any.
+    positive: int | None
+    #: Share (0-100) of negative responses (1-2, or NPS detractors); None without any.
+    negative: int | None
+
+
+class ToolMetrics(TypedDict, total=False):
+    """Per-tool figures of ``folders.metrics``: the period against the one before."""
+
+    type: str
+    id: str
+    name: str
+    #: Responses ever received.
+    totalResponses: int
+    lastResponseAt: str | None
+    current: ToolWindow
+    previous: ToolWindow
+
+
+class DailyPoint(TypedDict, total=False):
+    """Sums of one day (UTC) and tool type, enough to rebuild any score."""
+
+    date: str
+    type: str
+    count: int
+    scoreSum: int
+    positive: int
+    negative: int
+
+
+class FolderToolMetrics(TypedDict, total=False):
+    """Result of ``folders.metrics``."""
+
+    #: Period in days; 0 is the whole history (every ``previous`` window is empty).
+    days: int
+    tools: list[ToolMetrics]
+    #: Daily sums of both windows (2 x ``days``).
+    daily: list[DailyPoint]
+    #: Responses per score in the period: 0-10 for NPS, 1-5 for the rest.
+    distribution: dict[str, list[int]]
 
 
 class ToolTypeStats(TypedDict, total=False):

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 from .._options import RequestOptions
-from ..models import DeletedResult, Folder, WokuRecord
+from ..models import DeletedResult, Folder, FolderToolMetrics, WokuRecord
 from ..types import CreateFolderParams, UpdateFolderParams
 
 if TYPE_CHECKING:
@@ -92,6 +92,23 @@ class Folders:
         """AI report over every tool of the folder and its subfolders."""
         return self._client.request(
             "get", _path(folder_id, "/report"), query=params, options=options
+        )
+
+    def metrics(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> FolderToolMetrics:
+        """Per-tool figures of the folder subtree for a period against the one before.
+
+        ``params``: ``days`` (7, 30 by default, 90, or 0 for the whole history).
+        Returns each tool's responses, native-scale headline and share of positive
+        and negative responses, the daily sums of both periods and the histogram
+        of scores. Scales are never mixed across types.
+        """
+        return self._client.request(
+            "get", _path(folder_id, "/metrics"), query=params, options=options
         )
 
     def csv(self, folder_id: str, options: RequestOptions | None = None) -> str:
@@ -177,6 +194,17 @@ class AsyncFolders:
     ) -> WokuRecord:
         return await self._client.request(
             "get", _path(folder_id, "/report"), query=params, options=options
+        )
+
+    async def metrics(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> FolderToolMetrics:
+        """Async twin of :meth:`Folders.metrics`."""
+        return await self._client.request(
+            "get", _path(folder_id, "/metrics"), query=params, options=options
         )
 
     async def csv(self, folder_id: str, options: RequestOptions | None = None) -> str:
