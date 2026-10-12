@@ -135,7 +135,9 @@ class Tools:
         ``params``: ``folderId``, ``scope`` (``level``/``company``), ``types``
         (list of ``woku``/``nps``/``csat``/``ces``), ``q``, ``sort``, ``limit``,
         ``foldersLimit`` (1-100, pages the folders; omit for all of them),
-        ``createdFrom``, ``createdTo``.
+        ``createdFrom``, ``createdTo``, ``trackers`` (list of ``"name:value"`` chips, up
+        to 10: a tool matches when it has every one; the tracker name is matched
+        exactly, the value partially and ignoring case; company-wide, no folders).
         """
 
         def fetch(

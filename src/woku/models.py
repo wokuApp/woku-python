@@ -413,6 +413,10 @@ class ToolWindow(TypedDict, total=False):
     positive: int | None
     #: Share (0-100) of negative responses (1-2, or NPS detractors); None without any.
     negative: int | None
+    #: The raw counts and score sum behind the shares, to combine tools exactly.
+    positiveCount: int
+    negativeCount: int
+    scoreSum: int
 
 
 class ToolMetrics(TypedDict, total=False):
