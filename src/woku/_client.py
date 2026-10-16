@@ -38,7 +38,6 @@ from .resources.forms import AsyncForms, Forms
 from .resources.journey_folders import AsyncJourneyFolders, JourneyFolders
 from .resources.journeys import AsyncJourneys, Journeys
 from .resources.media import AsyncMedia, Media
-from .resources.quarantines import AsyncQuarantines, Quarantines
 from .resources.reports import AsyncReports, Reports
 from .resources.surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
 from .resources.tickets import (
@@ -119,7 +118,6 @@ class Woku(BaseClient):
         self.company = Company(self)
         self.journeys = Journeys(self)
         self.media = Media(self)
-        self.quarantines = Quarantines(self)
         self.folders = Folders(self)
         self.tools = Tools(self)
         self.journey_folders = JourneyFolders(self)
@@ -297,7 +295,6 @@ class AsyncWoku(BaseClient):
         self.company = AsyncCompany(self)
         self.journeys = AsyncJourneys(self)
         self.media = AsyncMedia(self)
-        self.quarantines = AsyncQuarantines(self)
         self.folders = AsyncFolders(self)
         self.tools = AsyncTools(self)
         self.journey_folders = AsyncJourneyFolders(self)

@@ -502,8 +502,8 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
-`ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
-`journeys`, `folders`, `tools`, `journey_folders`.
+`ticket_destinations`, `dispatches`, `reports`, `company`, `journeys`,
+`folders`, `tools`, `journey_folders`.
 
 ## License
 

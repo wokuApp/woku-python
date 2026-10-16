@@ -14,7 +14,6 @@ from .flows import AsyncFlows, Flows
 from .follow_ups import AsyncFollowUps, FollowUps
 from .forms import AsyncForms, Forms
 from .journeys import AsyncJourneys, Journeys
-from .quarantines import AsyncQuarantines, Quarantines
 from .reports import AsyncReports, Reports
 from .surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
 from .tickets import (
@@ -50,7 +49,6 @@ __all__ = [
     "AsyncForms",
     "AsyncNps",
     "AsyncNpsTools",
-    "AsyncQuarantines",
     "AsyncReports",
     "AsyncTicketDestinations",
     "AsyncTickets",
@@ -69,7 +67,6 @@ __all__ = [
     "NpsTools",
     "Journeys",
     "AsyncJourneys",
-    "Quarantines",
     "Reports",
     "TicketDestinations",
     "Tickets",
