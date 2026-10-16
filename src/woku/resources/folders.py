@@ -102,7 +102,10 @@ class Folders:
     ) -> FolderToolMetrics:
         """Per-tool figures of the folder subtree for a period against the one before.
 
-        ``params``: ``days`` (7, 30 by default, 90, or 0 for the whole history).
+        ``params``: ``days`` (7, 30 by default, 90, or 0 for the whole history), or
+        a custom range with ``from`` and ``to`` (``YYYY-MM-DD`` UTC days, both
+        inclusive, up to 731 days), which replaces ``days``; the result then also
+        carries ``"from"`` and ``"to"``.
         Returns each tool's responses, native-scale headline and share of positive
         and negative responses, the daily sums of both periods and the histogram
         of scores. Scales are never mixed across types.

@@ -415,6 +415,10 @@ csv_text = woku.folders.csv(folder["id"])
 # for the whole history), with the daily sums and the histogram of scores. Every
 # type keeps its own scale: NPS -100..100, CSAT %, CES and stars 1-5.
 metrics = woku.folders.metrics(folder["id"], {"days": 30})
+# Or a custom range of UTC days (both inclusive), as the admin custom period.
+september = woku.folders.metrics(
+    folder["id"], {"from": "2026-09-01", "to": "2026-09-30"}
+)
 for tool in metrics["tools"]:
     print(tool["name"], tool["current"]["headline"]["value"])
 
@@ -502,8 +506,8 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
-`ticket_destinations`, `dispatches`, `reports`, `company`, `quarantines`,
-`journeys`, `folders`, `tools`, `journey_folders`.
+`ticket_destinations`, `dispatches`, `reports`, `company`, `journeys`,
+`folders`, `tools`, `journey_folders`.
 
 ## License
 

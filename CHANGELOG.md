@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- `folders.metrics` documents the custom `from`/`to` range of UTC days (both
+  inclusive, up to 731 days), as the admin custom period; the result then also
+  carries `from` and `to`.
+
+### Removed
+
+- `quarantines.check()` (sync and async): the public API no longer exposes
+  `GET /v1/quarantines/check`, since quarantines are not managed from the admin
+  anymore. Existing quarantines are still enforced when a respondent answers.
+
 ## 0.5.0
 
 ### Folders and tools
