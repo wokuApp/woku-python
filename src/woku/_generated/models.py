@@ -2422,6 +2422,10 @@ class WhatsappAlertRecipientDTO(BaseModel):
     """
     Kinds of comment that alert this number. Defaults to all four.
     """
+    allReviews: Optional[bool] = False
+    """
+    true alerts every review of those kinds (recognitions too); false or absent alerts improvements only.
+    """
 
 
 class UpdateFolderBodyDTO(BaseModel):

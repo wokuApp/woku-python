@@ -423,10 +423,16 @@ for tool in metrics["tools"]:
     print(tool["name"], tool["current"]["headline"]["value"])
 
 # WhatsApp numbers alerted when a comment on any tool of the folder is an
-# improvement (wokus, NPS, CSAT and CES). The list replaces the previous one.
+# improvement (wokus, NPS, CSAT and CES). "allReviews": True alerts every
+# review, recognitions too. The list replaces the previous one.
 woku.folders.update(
     folder["id"],
-    {"whatsappAlertRecipients": [{"whatsappId": "56912345678", "name": "Ana"}]},
+    {
+        "whatsappAlertRecipients": [
+            {"whatsappId": "56912345678", "name": "Ana"},
+            {"whatsappId": "56987654321", "name": "Luis", "allReviews": True},
+        ]
+    },
 )
 
 # Deleting a folder never deletes its content: it moves up to the parent.
