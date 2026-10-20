@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0
+
+### Added
+
+- NPS, CSAT and CES tools take `anonymousDisabled` and
+  `onlyOneResponsePerClient` on `create` and `update`, and return both on every
+  tool. Both can change even after the tool has responses. A repeat answer to a
+  one-response-per-client survey is rejected with HTTP 409 `ALREADY_RESPONDED`.
+
 ## 0.7.0
 
 ### Added

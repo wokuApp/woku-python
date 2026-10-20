@@ -55,6 +55,10 @@ class NpsTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 
@@ -69,6 +73,10 @@ class CsatTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 
@@ -83,6 +91,10 @@ class CesTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 

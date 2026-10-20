@@ -457,6 +457,17 @@ resources (`nps_tools`, `csat_tools`, `ces_tools`) accept `folderId` on `create`
 return `folderId` on every tool and have `move(tool_id, {"folderId": ...})`.
 `AsyncWoku` mirrors all of it (`async for tool in await woku.tools.list()`).
 
+NPS, CSAT and CES tools also take two response settings on `create` and
+`update`: `anonymousDisabled` (only identified answers) and
+`onlyOneResponsePerClient` (each identified client answers once; a repeat answer
+is rejected with HTTP 409 and the code `ALREADY_RESPONDED`). Both come back on
+every tool and can change even after the tool has responses, while its copy
+stays frozen:
+
+```python
+woku.nps_tools.update("nps_tool_id", {"onlyOneResponsePerClient": True})
+```
+
 ## Pagination
 
 List methods return a page you can iterate item by item across pages, or walk

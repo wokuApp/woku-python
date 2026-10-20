@@ -1298,6 +1298,14 @@ class DefaultLocale1(Enum):
 
 
 class CreateNpsToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1337,6 +1345,14 @@ class DefaultLocale2(Enum):
 
 
 class UpdateNpsToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     npsMessage: Annotated[
         Optional[str], Field(examples=['our company'], max_length=140, min_length=3)
@@ -1395,6 +1411,14 @@ class DefaultLocale3(Enum):
 
 
 class CreateCsatToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1439,6 +1463,14 @@ class DefaultLocale4(Enum):
 
 
 class UpdateCsatToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     question: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
     subject: Annotated[Optional[str], Field(max_length=140)] = None
@@ -1480,6 +1512,14 @@ class DefaultLocale5(Enum):
 
 
 class CreateCesToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1524,6 +1564,14 @@ class DefaultLocale6(Enum):
 
 
 class UpdateCesToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     question: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
     action: Annotated[Optional[str], Field(max_length=140)] = None
