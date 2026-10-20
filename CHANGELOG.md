@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `whatsappAlertRecipients` numbers take `allReviews`: `True` alerts every
+  review (recognitions too), `False` or absent keeps improvement alerts only.
+  Folders return it on every recipient.
+
 ## 0.6.0
 
 ### Added

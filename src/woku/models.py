@@ -397,8 +397,9 @@ class Folder(TypedDict, total=False):
     #: Provider of an integration folder (``shopify``, ``pancake``); None otherwise.
     integrationProvider: str | None
     #: WhatsApp numbers alerted when a comment of any tool in the folder is an
-    #: improvement: ``whatsappId`` (no leading +), ``name`` and ``sources`` (which
-    #: of ``woku``, ``nps``, ``csat`` and ``ces`` alert that number).
+    #: improvement: ``whatsappId`` (no leading +), ``name``, ``sources`` (which
+    #: of ``woku``, ``nps``, ``csat`` and ``ces`` alert that number) and
+    #: ``allReviews`` (``True``: every review, recognitions too).
     whatsappAlertRecipients: list[dict[str, Any]]
     createdAt: str | None
     stats: FolderStats
