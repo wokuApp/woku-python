@@ -133,7 +133,9 @@ class Tools:
         """List one folder level, or search the company with ``q``/``scope``.
 
         ``params``: ``folderId``, ``scope`` (``level``/``company``), ``types``
-        (list of ``woku``/``nps``/``csat``/``ces``), ``q``, ``sort``, ``limit``,
+        (list of ``woku``/``nps``/``csat``/``ces``), ``q``, ``sort`` (``name``,
+        ``created`` or ``lastResponse``, ``-`` for descending; tools without
+        responses sort as the oldest), ``limit``,
         ``foldersLimit`` (1-100, pages the folders; omit for all of them),
         ``createdFrom``, ``createdTo``, ``trackers`` (list of ``"name:value"`` chips, up
         to 10: a tool matches when it has every one; the tracker name is matched

@@ -382,6 +382,8 @@ woku.csat_tools.create(
 for tool in woku.tools.list({"folderId": folder["id"], "types": ["csat", "nps"]}):
     print(tool["type"], tool["name"], tool["reviewCount"], tool["headline"]["value"])
 found = woku.tools.list({"q": "delivery", "scope": "company"})
+# Tools with the most recent responses first (tools without any go last).
+recent = woku.tools.list({"sort": "-lastResponse"})
 # Tracker chips ("name:value"): a tool matches when it has every one. Company-wide.
 tagged = woku.tools.list({"trackers": ["TRR:00482"]})
 
@@ -410,6 +412,10 @@ woku.nps_tools.move("nps_tool_id", {"folderId": None})
 report = woku.folders.report(folder["id"], {"lang": "en"})
 pdf_bytes = woku.folders.pdf(folder["id"], {"lang": "en"})  # raw bytes, write to a file
 csv_text = woku.folders.csv(folder["id"])
+# Only the responses of a period ("from" inclusive, "to" exclusive).
+september_csv = woku.folders.csv(
+    folder["id"], {"from": "2026-09-01T00:00:00.000Z", "to": "2026-10-01T00:00:00.000Z"}
+)
 
 # Per-tool figures for a period against the one before it (7, 30 or 90 days, or 0
 # for the whole history), with the daily sums and the histogram of scores. Every
@@ -466,6 +472,71 @@ stays frozen:
 
 ```python
 woku.nps_tools.update("nps_tool_id", {"onlyOneResponsePerClient": True})
+```
+
+### Scheduled reports
+
+Email the PDF report of a folder (every tool of its subtree, optionally with the
+CSV) or of one tool to up to 10 people, also outside woku. `monthly` goes out on
+the 1st, `biweekly` on the 1st and 16th and `weekly` on Mondays, at 12:00 UTC
+with the previous complete period; `once` goes out at `sendAt` with its own
+period. Each email goes as the company with a one-click unsubscribe.
+
+```python
+monthly = woku.report_subscriptions.create(
+    {
+        "scopeType": "folder",
+        "scopeId": folder["id"],
+        "frequency": "monthly",
+        "recipients": ["board@acme.com"],
+        "includeCsv": True,
+    }
+)
+print(monthly["nextRunAt"])
+
+# One report of a chosen period, sent right away.
+once = woku.report_subscriptions.create(
+    {
+        "scopeType": "nps",
+        "scopeId": "nps_tool_id",
+        "frequency": "once",
+        "recipients": ["ana@acme.com"],
+        "periodFrom": "2026-09-01T00:00:00.000Z",
+        "periodTo": "2026-10-01T00:00:00.000Z",
+    }
+)
+woku.report_subscriptions.send(once["id"])  # {"status": "sent", "sent": 1}
+
+woku.report_subscriptions.update(monthly["id"], {"active": False})  # pause
+woku.report_subscriptions.list({"scopeType": "folder", "scopeId": folder["id"]})
+woku.report_subscriptions.delete(monthly["id"])
+```
+
+### Folder participants
+
+Keep the list of people expected to answer the tools of a folder (a program's
+enrolled, for example) and see, per tool, who answered, who is missing and who
+answered more than once. One person per line: a name, an email and/or a phone
+with its country code; a CSV goes as is. Only identified responses can be
+matched, so each tool says whether it takes anonymous ones.
+
+```python
+woku.folder_participants.replace(folder["id"], "Ana, ana@acme.com\nLuis, +56 9 8765 4321")
+woku.folder_participants.add(folder["id"], "carla@acme.com")  # skips people listed
+
+result = woku.folder_participants.get(folder["id"])
+people = result["participants"]
+for tool in result["tools"]:
+    missing = [people[i].get("name") for i in tool["missing"]]
+    print(tool["name"], len(tool["responded"]), missing, tool["anonymousAllowed"])
+
+# Send a tool again to the people who have not answered it.
+woku.folder_participants.resend_to_missing(
+    folder["id"], {"toolType": "nps", "toolId": "nps_tool_id", "channel": "email"}
+)  # missing, sent, withoutContact, failed
+
+woku.folder_participants.remove(folder["id"], people[0]["id"])
+woku.folder_participants.clear(folder["id"])
 ```
 
 ## Pagination

@@ -114,9 +114,20 @@ class Folders:
             "get", _path(folder_id, "/metrics"), query=params, options=options
         )
 
-    def csv(self, folder_id: str, options: RequestOptions | None = None) -> str:
-        """CSV text with one row per response of every tool of the subtree."""
-        return self._client.request("get", _path(folder_id, "/csv"), options=options)
+    def csv(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> str:
+        """CSV text with one row per response of every tool of the subtree.
+
+        ``params``: ``from`` (inclusive) and ``to`` (exclusive), ISO 8601, to
+        keep only the responses of a period.
+        """
+        return self._client.request(
+            "get", _path(folder_id, "/csv"), query=params, options=options
+        )
 
     def pdf(
         self,
@@ -210,9 +221,14 @@ class AsyncFolders:
             "get", _path(folder_id, "/metrics"), query=params, options=options
         )
 
-    async def csv(self, folder_id: str, options: RequestOptions | None = None) -> str:
+    async def csv(
+        self,
+        folder_id: str,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> str:
         return await self._client.request(
-            "get", _path(folder_id, "/csv"), options=options
+            "get", _path(folder_id, "/csv"), query=params, options=options
         )
 
     async def pdf(

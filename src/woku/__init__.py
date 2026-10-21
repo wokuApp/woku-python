@@ -46,13 +46,22 @@ from .models import (
     TicketOrigin,
     TicketOriginTracker,
 )
+from .resources.folder_participants import AsyncFolderParticipants, FolderParticipants
 from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
 from .resources.journey_folders import AsyncJourneyFolders, JourneyFolders
+from .resources.report_subscriptions import (
+    AsyncReportSubscriptions,
+    ReportSubscriptions,
+)
 from .resources.tools import AsyncTools, AsyncToolsPage, Tools, ToolsPage
 from .types import CustomTicketDestinationConfig, CustomTicketUpdateConfig
 
 __all__ = [
+    "AsyncFolderParticipants",
+    "FolderParticipants",
+    "AsyncReportSubscriptions",
+    "ReportSubscriptions",
     "AsyncJourneyFolders",
     "JourneyFolders",
     "AsyncFolders",
