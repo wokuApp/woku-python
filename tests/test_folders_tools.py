@@ -524,3 +524,45 @@ def test_flow_create_sends_ordered_steps_with_an_idempotency_key() -> None:
     assert seen[0][0]
     assert seen[0][1] == {"name": "A", "steps": steps}
     assert [step["type"] for step in flow["steps"]] == ["nps", "csat", "woku"]
+
+
+@pytest.mark.parametrize(
+    "dto",
+    [
+        "CreateNpsToolBodyDTO",
+        "UpdateNpsToolBodyDTO",
+        "CreateCsatToolBodyDTO",
+        "UpdateCsatToolBodyDTO",
+        "CreateCesToolBodyDTO",
+        "UpdateCesToolBodyDTO",
+    ],
+)
+def test_survey_tool_bodies_accept_the_response_settings(dto: str) -> None:
+    properties = SPEC["components"]["schemas"][dto]["properties"]
+    assert "anonymousDisabled" in properties
+    assert "onlyOneResponsePerClient" in properties
+
+
+@respx.mock
+def test_survey_tool_settings_only_update_and_read_back() -> None:
+    seen: list[Any] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "_id": "c1",
+                "name": "Delivery",
+                "question": "q",
+                "anonymousDisabled": False,
+                "onlyOneResponsePerClient": True,
+            },
+        )
+
+    respx.patch("https://api.test/v1/csat-tools/c1").mock(side_effect=respond)
+    with Woku(api_key="sk_test", base_url="https://api.test") as woku:
+        tool = woku.csat_tools.update("c1", {"onlyOneResponsePerClient": True})
+    assert seen == [{"onlyOneResponsePerClient": True}]
+    assert tool["onlyOneResponsePerClient"] is True
+    assert tool["anonymousDisabled"] is False

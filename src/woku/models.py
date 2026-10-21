@@ -55,6 +55,10 @@ class NpsTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 
@@ -69,6 +73,10 @@ class CsatTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 
@@ -83,6 +91,10 @@ class CesTool(TypedDict, total=False):
     availableLocales: list[str]
     defaultLocale: str
     localizedContent: list[ToolLocalizedContent]
+    #: Only identified answers (email or phone) are accepted.
+    anonymousDisabled: bool
+    #: Each identified client answers once; anonymous answers never count.
+    onlyOneResponsePerClient: bool
     createdAt: str
 
 
@@ -514,3 +526,100 @@ class Flow(TypedDict, total=False):
     companyIdNps: str | None
     createdAt: str
     updatedAt: str
+
+
+ReportSubscriptionScope = Literal["folder", "woku", "nps", "csat", "ces"]
+#: ``monthly`` (1st), ``biweekly`` (1st and 16th), ``weekly`` (Mondays) at
+#: 12:00 UTC with the previous complete period, or ``once``.
+ReportSubscriptionFrequency = Literal["monthly", "biweekly", "weekly", "once"]
+
+
+class ReportSubscriptionDelivery(TypedDict, total=False):
+    """One send of a scheduled report."""
+
+    periodKey: str
+    sentAt: str
+    recipients: int
+    delivered: bool
+    error: str
+
+
+class ReportSubscription(TypedDict, total=False):
+    """A report emailed on a schedule to people inside or outside woku."""
+
+    id: str
+    scopeType: ReportSubscriptionScope
+    scopeId: str
+    #: Name of the folder or tool; empty when it no longer exists.
+    scopeName: str
+    frequency: ReportSubscriptionFrequency
+    periodFrom: str | None
+    periodTo: str | None
+    recipients: list[str]
+    includeCsv: bool
+    locale: str
+    #: ``False`` when paused, or when a one-off already went out.
+    active: bool
+    nextRunAt: str | None
+    lastDelivery: ReportSubscriptionDelivery | None
+    createdAt: str | None
+
+
+class ReportSubscriptionSendResult(TypedDict, total=False):
+    status: Literal["sent", "skipped", "failed"]
+    sent: int
+    periodKey: str
+
+
+class FolderParticipant(TypedDict, total=False):
+    """A person of a folder's participant list."""
+
+    #: Stable id, for ``folder_participants.remove``.
+    id: str
+    name: str
+    email: str
+    #: Digits with the country code, no ``+``.
+    phone: str
+
+
+class ToolParticipation(TypedDict, total=False):
+    """Who of the list answered one tool of the folder subtree.
+
+    ``responded``, ``missing`` and ``repeated`` (more than once) are indexes
+    into the participants; ``outsideList`` counts the responses anonymous or
+    from someone not on the list.
+    """
+
+    type: ToolType
+    id: str
+    name: str
+    folderPath: str
+    anonymousAllowed: bool
+    responded: list[int]
+    missing: list[int]
+    repeated: list[int]
+    outsideList: int
+
+
+class FolderParticipation(TypedDict, total=False):
+    folder: dict[str, str]
+    participants: list[FolderParticipant]
+    updatedAt: str | None
+    tools: list[ToolParticipation]
+
+
+class ParticipantsSaveResult(TypedDict, total=False):
+    count: int
+    #: 1-based lines without an email or phone.
+    invalidLines: list[int]
+    duplicates: int
+    #: ``add`` only: people on the list after adding.
+    total: int
+
+
+class ResendToMissingResult(TypedDict, total=False):
+    missing: int
+    sent: int
+    #: Missing people without a contact for the channel.
+    withoutContact: int
+    failed: int

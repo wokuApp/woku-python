@@ -1298,6 +1298,14 @@ class DefaultLocale1(Enum):
 
 
 class CreateNpsToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1337,6 +1345,14 @@ class DefaultLocale2(Enum):
 
 
 class UpdateNpsToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     npsMessage: Annotated[
         Optional[str], Field(examples=['our company'], max_length=140, min_length=3)
@@ -1395,6 +1411,14 @@ class DefaultLocale3(Enum):
 
 
 class CreateCsatToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1439,6 +1463,14 @@ class DefaultLocale4(Enum):
 
 
 class UpdateCsatToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     question: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
     subject: Annotated[Optional[str], Field(max_length=140)] = None
@@ -1480,6 +1512,14 @@ class DefaultLocale5(Enum):
 
 
 class CreateCesToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     folderId: Optional[str] = None
     """
     Folder to create the tool in. Must belong to your company. Omit for the root.
@@ -1524,6 +1564,14 @@ class DefaultLocale6(Enum):
 
 
 class UpdateCesToolBodyDTO(BaseModel):
+    anonymousDisabled: Optional[bool] = None
+    """
+    Require an identified response (email or phone)
+    """
+    onlyOneResponsePerClient: Optional[bool] = None
+    """
+    Accept one response per identified client; anonymous answers never count
+    """
     name: Annotated[Optional[str], Field(max_length=140)] = None
     question: Annotated[Optional[str], Field(max_length=140, min_length=3)] = None
     action: Annotated[Optional[str], Field(max_length=140)] = None
@@ -2445,6 +2493,108 @@ class MoveFolderBodyDTO(BaseModel):
     """
     New parent folder, or null to move the folder to the root. A folder cannot move into itself or one of its subfolders.
     """
+
+
+class ScopeType(Enum):
+    folder = 'folder'
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class Frequency(Enum):
+    """
+    monthly (1st), biweekly (1st and 16th), weekly (Mondays) at 12:00 UTC with the previous complete period, or once
+    """
+
+    monthly = 'monthly'
+    biweekly = 'biweekly'
+    weekly = 'weekly'
+    once = 'once'
+
+
+class CreateReportSubscriptionDTO(BaseModel):
+    scopeType: ScopeType
+    scopeId: str
+    """
+    Folder or tool id
+    """
+    frequency: Frequency
+    """
+    monthly (1st), biweekly (1st and 16th), weekly (Mondays) at 12:00 UTC with the previous complete period, or once
+    """
+    recipients: list[str]
+    """
+    Recipient emails, 1 to 10; they need no woku account
+    """
+    includeCsv: Optional[bool] = None
+    """
+    Folder only: also attach the CSV
+    """
+    locale: Optional[Locale] = 'es'
+    sendAt: Optional[str] = None
+    """
+    once only: when to send it (ISO); absent = now
+    """
+    periodFrom: Optional[str] = None
+    """
+    once only: period start (ISO)
+    """
+    periodTo: Optional[str] = None
+    """
+    once only: period end (ISO, exclusive)
+    """
+
+
+class Frequency1(Enum):
+    monthly = 'monthly'
+    biweekly = 'biweekly'
+    weekly = 'weekly'
+
+
+class UpdateReportSubscriptionDTO(BaseModel):
+    frequency: Optional[Frequency1] = None
+    recipients: Optional[list[str]] = None
+    includeCsv: Optional[bool] = None
+    locale: Optional[Locale] = None
+    active: Optional[bool] = None
+    """
+    false pauses, true resumes
+    """
+
+
+class SetFolderParticipantsDTO(BaseModel):
+    text: Annotated[
+        str, Field(examples=['Ana Pérez, ana@acme.cl, +56 9 1234 5678\nbo@acme.cl'])
+    ]
+    """
+    One person per line: a name, an email and/or a phone (with country code), separated by commas, semicolons or tabs. A CSV pastes as is; a header row is skipped. Replaces the list; up to 500 people.
+    """
+
+
+class ToolType1(Enum):
+    woku = 'woku'
+    nps = 'nps'
+    csat = 'csat'
+    ces = 'ces'
+
+
+class Channel8(Enum):
+    email = 'email'
+    whatsapp = 'whatsapp'
+
+
+class Language6(Enum):
+    es = 'es'
+    en = 'en'
+
+
+class ResendToMissingParticipantsDTO(BaseModel):
+    toolType: ToolType1
+    toolId: str
+    channel: Channel8
+    language: Optional[Language6] = None
 
 
 class Type4(Enum):

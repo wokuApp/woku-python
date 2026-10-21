@@ -32,12 +32,17 @@ from .resources.action_plans import (
 from .resources.company import AsyncCompany, Company
 from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
+from .resources.folder_participants import AsyncFolderParticipants, FolderParticipants
 from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
 from .resources.forms import AsyncForms, Forms
 from .resources.journey_folders import AsyncJourneyFolders, JourneyFolders
 from .resources.journeys import AsyncJourneys, Journeys
 from .resources.media import AsyncMedia, Media
+from .resources.report_subscriptions import (
+    AsyncReportSubscriptions,
+    ReportSubscriptions,
+)
 from .resources.reports import AsyncReports, Reports
 from .resources.surveys import AsyncCes, AsyncCsat, AsyncNps, Ces, Csat, Nps
 from .resources.tickets import (
@@ -121,6 +126,8 @@ class Woku(BaseClient):
         self.folders = Folders(self)
         self.tools = Tools(self)
         self.journey_folders = JourneyFolders(self)
+        self.folder_participants = FolderParticipants(self)
+        self.report_subscriptions = ReportSubscriptions(self)
 
     def request(
         self,
@@ -298,6 +305,8 @@ class AsyncWoku(BaseClient):
         self.folders = AsyncFolders(self)
         self.tools = AsyncTools(self)
         self.journey_folders = AsyncJourneyFolders(self)
+        self.folder_participants = AsyncFolderParticipants(self)
+        self.report_subscriptions = AsyncReportSubscriptions(self)
 
     async def request(
         self,

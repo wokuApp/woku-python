@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.0
+
+### Added
+
+- `report_subscriptions` (sync and async): schedule report emails of a folder
+  or a tool (monthly, every two weeks, weekly or once) with `list`, `create`,
+  `update`, `delete` and `send`.
+- `folder_participants` (sync and async): a folder's participant list with
+  `get` (who of it answered each tool), `replace`, `add`, `remove`, `clear` and
+  `resend_to_missing`.
+- `folders.csv` takes `params` with `from`/`to` to keep only a period. `params`
+  goes before `options`, as in `folders.report`.
+- `tools.list` documents `sort` by `lastResponse` (the latest response).
+
+- NPS, CSAT and CES tools take `anonymousDisabled` and
+  `onlyOneResponsePerClient` on `create` and `update`, and return both on every
+  tool. Both can change even after the tool has responses. A repeat answer to a
+  one-response-per-client survey is rejected with HTTP 409 `ALREADY_RESPONDED`.
+
 ## 0.7.0
 
 ### Added
