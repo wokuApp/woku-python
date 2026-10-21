@@ -521,7 +521,9 @@ with its country code; a CSV goes as is. Only identified responses can be
 matched, so each tool says whether it takes anonymous ones.
 
 ```python
-woku.folder_participants.replace(folder["id"], "Ana, ana@acme.com\nLuis, +56 9 8765 4321")
+woku.folder_participants.replace(
+    folder["id"], "Ana, ana@acme.com\nLuis, +56 9 8765 4321"
+)
 woku.folder_participants.add(folder["id"], "carla@acme.com")  # skips people listed
 
 result = woku.folder_participants.get(folder["id"])
