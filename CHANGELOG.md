@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1
+
+### Fixed
+
+- The bundled OpenAPI spec (`openapi/openapi-v1.json`, shipped in the sdist) no
+  longer names private routes in the summaries of seven `/v1` endpoints (for
+  example "v1 alias of POST /wokus/create-woku"). No API change.
+
 ## 0.8.0
 
 ### Added
