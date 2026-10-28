@@ -34,6 +34,12 @@ from ._options import RequestOptions
 from ._pagination import AsyncPage, PageResponse, SyncPage
 from ._version import __version__
 from .models import (
+    DataApp,
+    DataAppChange,
+    DataAppPublication,
+    DataAppQueryResults,
+    DataAppTable,
+    DataAppView,
     FollowUp,
     FollowUpAttachment,
     FollowUpCitation,
@@ -46,6 +52,7 @@ from .models import (
     TicketOrigin,
     TicketOriginTracker,
 )
+from .resources.data_apps import AsyncDataApps, DataApps
 from .resources.folder_participants import AsyncFolderParticipants, FolderParticipants
 from .resources.folders import AsyncFolders, Folders
 from .resources.follow_ups import AsyncFollowUps, FollowUps
@@ -73,11 +80,19 @@ __all__ = [
     "AsyncPage",
     "CustomTicketDestinationConfig",
     "CustomTicketUpdateConfig",
+    "AsyncDataApps",
     "AsyncFollowUps",
+    "DataApps",
     "FollowUps",
     "FollowUp",
     "FollowUpAttachment",
     "FollowUpCitation",
+    "DataApp",
+    "DataAppChange",
+    "DataAppPublication",
+    "DataAppQueryResults",
+    "DataAppTable",
+    "DataAppView",
     "FollowUpConversation",
     "FollowUpLine",
     "FollowUpMessage",

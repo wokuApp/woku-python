@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `data_apps` (sync and async) for Data Studio apps on `/v1/data-apps`: `list`,
+  `get` (with `version`), `run_queries`, `edit` with operations, `build`,
+  `restore`, `publish`, `list_tables` and `upload_table`. Every change makes a
+  new version; personal data never comes back.
+
 ## 0.8.1
 
 ### Fixed
