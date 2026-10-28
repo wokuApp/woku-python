@@ -679,6 +679,14 @@ class DataAppChange(TypedDict, total=False):
     summary: dict[str, list[str]]
 
 
+class DataAppCopy(TypedDict, total=False):
+    """The app created by a duplicate."""
+
+    id: str
+    title: str
+    currentVersion: int | None
+
+
 class DataAppPublication(TypedDict, total=False):
     slug: str | None
     isPublished: bool

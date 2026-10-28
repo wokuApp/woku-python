@@ -636,6 +636,25 @@ class EditDataAppBodyDTO(BaseModel):
     """
 
 
+class CopyDataAppComponentBodyDTO(BaseModel):
+    fromVersion: Annotated[float, Field(ge=1.0)]
+    """
+    Version to copy the component from.
+    """
+    nodeId: Annotated[str, Field(max_length=64)]
+    """
+    Id of the component in that version.
+    """
+    parent: Annotated[str, Field(max_length=64)]
+    """
+    Container of the current version that receives it (for example "page").
+    """
+    index: Annotated[Optional[float], Field(ge=0.0)] = None
+    """
+    Position inside the container; omit to add it last.
+    """
+
+
 class PublishDataAppVersionBodyDTO(BaseModel):
     accessKey: Annotated[Optional[str], Field(max_length=72, min_length=4)] = None
     """

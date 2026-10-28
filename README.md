@@ -565,7 +565,12 @@ change = woku.data_apps.edit(
     },
 )
 woku.data_apps.restore(app["id"], 1)  # an earlier version as a new one
+woku.data_apps.copy_from_version(  # one component back from an earlier version
+    app["id"], {"fromVersion": 1, "nodeId": "ranking", "parent": "page"}
+)
 woku.data_apps.publish(app["id"], change["version"], {"accessKey": "clave"})
+woku.data_apps.unpublish(app["id"])  # the link stops answering
+variant = woku.data_apps.duplicate(app["id"])  # a new app to explore
 
 # Data tables: the same file name makes a new version of the table.
 with open("metas.csv", "rb") as file:

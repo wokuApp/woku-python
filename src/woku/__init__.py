@@ -36,6 +36,7 @@ from ._version import __version__
 from .models import (
     DataApp,
     DataAppChange,
+    DataAppCopy,
     DataAppPublication,
     DataAppQueryResults,
     DataAppTable,
@@ -89,6 +90,7 @@ __all__ = [
     "FollowUpCitation",
     "DataApp",
     "DataAppChange",
+    "DataAppCopy",
     "DataAppPublication",
     "DataAppQueryResults",
     "DataAppTable",

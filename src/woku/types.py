@@ -89,3 +89,4 @@ class CustomTicketDestinationConfig(TypedDict):
 RunDataAppQueriesParams = Union[_g.RunDataAppQueriesBodyDTO, JsonMapping]
 EditDataAppParams = Union[_g.EditDataAppBodyDTO, JsonMapping]
 PublishDataAppVersionParams = Union[_g.PublishDataAppVersionBodyDTO, JsonMapping]
+CopyDataAppComponentParams = Union[_g.CopyDataAppComponentBodyDTO, JsonMapping]

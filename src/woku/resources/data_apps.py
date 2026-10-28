@@ -11,12 +11,14 @@ from .._pagination import AsyncPage, SyncPage
 from ..models import (
     DataApp,
     DataAppChange,
+    DataAppCopy,
     DataAppPublication,
     DataAppQueryResults,
     DataAppTable,
     DataAppView,
 )
 from ..types import (
+    CopyDataAppComponentParams,
     EditDataAppParams,
     PublishDataAppVersionParams,
     RunDataAppQueriesParams,
@@ -101,6 +103,33 @@ class DataApps:
             f"{_app(app_id)}/versions/{version}/publish",
             body=body or {},
             options=options,
+        )
+
+    def copy_from_version(
+        self,
+        app_id: str,
+        body: CopyDataAppComponentParams,
+        options: RequestOptions | None = None,
+    ) -> DataAppChange:
+        """Bring a component of an earlier version into the current one."""
+        return self._client.request(
+            "post", f"{_app(app_id)}/copy", body=body, options=options
+        )
+
+    def duplicate(
+        self, app_id: str, options: RequestOptions | None = None
+    ) -> DataAppCopy:
+        """A new app from the current version; the original does not change."""
+        return self._client.request(
+            "post", f"{_app(app_id)}/duplicate", options=options
+        )
+
+    def unpublish(
+        self, app_id: str, options: RequestOptions | None = None
+    ) -> DataAppPublication:
+        """The shared link stops answering; versions are kept."""
+        return self._client.request(
+            "post", f"{_app(app_id)}/unpublish", options=options
         )
 
     def list_tables(
@@ -205,6 +234,33 @@ class AsyncDataApps:
             f"{_app(app_id)}/versions/{version}/publish",
             body=body or {},
             options=options,
+        )
+
+    async def copy_from_version(
+        self,
+        app_id: str,
+        body: CopyDataAppComponentParams,
+        options: RequestOptions | None = None,
+    ) -> DataAppChange:
+        """Bring a component of an earlier version into the current one."""
+        return await self._client.request(
+            "post", f"{_app(app_id)}/copy", body=body, options=options
+        )
+
+    async def duplicate(
+        self, app_id: str, options: RequestOptions | None = None
+    ) -> DataAppCopy:
+        """A new app from the current version; the original does not change."""
+        return await self._client.request(
+            "post", f"{_app(app_id)}/duplicate", options=options
+        )
+
+    async def unpublish(
+        self, app_id: str, options: RequestOptions | None = None
+    ) -> DataAppPublication:
+        """The shared link stops answering; versions are kept."""
+        return await self._client.request(
+            "post", f"{_app(app_id)}/unpublish", options=options
         )
 
     async def list_tables(

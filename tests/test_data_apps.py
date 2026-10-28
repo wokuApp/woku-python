@@ -105,3 +105,29 @@ async def test_async_tables_list_and_upload_once() -> None:
     assert request.headers["content-type"].startswith("multipart/form-data")
     assert b'filename="metas.csv"' in request.content
     assert upload.call_count == 1
+
+
+@respx.mock
+def test_copies_duplicates_and_stops_sharing() -> None:
+    copy = respx.post(f"{BASE}/v1/data-apps/a1/copy").mock(
+        return_value=httpx.Response(201, json={"version": 7})
+    )
+    respx.post(f"{BASE}/v1/data-apps/a1/duplicate").mock(
+        return_value=httpx.Response(201, json={"id": "a2", "currentVersion": 1})
+    )
+    respx.post(f"{BASE}/v1/data-apps/a2/unpublish").mock(
+        return_value=httpx.Response(200, json={"isPublished": False})
+    )
+    with sdk() as client:
+        changed = client.data_apps.copy_from_version(
+            "a1", {"fromVersion": 2, "nodeId": "chart", "parent": "page"}
+        )
+        variant = client.data_apps.duplicate("a1")
+        stopped = client.data_apps.unpublish(variant["id"])
+    assert changed["version"] == 7
+    assert json.loads(copy.calls.last.request.content) == {
+        "fromVersion": 2,
+        "nodeId": "chart",
+        "parent": "page",
+    }
+    assert stopped["isPublished"] is False
