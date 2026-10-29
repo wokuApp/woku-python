@@ -27,6 +27,8 @@ class ListTicketsParams(TypedDict, total=False):
     severity: Severity
     search: str
     destinationId: str
+    #: Tickets from tools in this folder or its subfolders.
+    folderId: str
     createdFrom: str
     createdTo: str
     page: int
@@ -35,8 +37,15 @@ class ListTicketsParams(TypedDict, total=False):
 
 class TicketStatsParams(TypedDict, total=False):
     destinationId: str
+    #: Tickets from tools in this folder or its subfolders.
+    folderId: str
     createdFrom: str
     createdTo: str
+
+
+class ListTicketDestinationsParams(TypedDict, total=False):
+    #: Only destinations by folder that listen to this folder (or an ancestor).
+    folderId: str
 
 
 class Tickets:
@@ -87,8 +96,16 @@ class TicketDestinations:
     def __init__(self, client: Woku) -> None:
         self._client = client
 
-    def list(self, options: RequestOptions | None = None) -> builtins.list[WokuRecord]:
-        return self._client.request("get", "/v1/ticket-destinations", options=options)
+    def list(
+        self,
+        options: RequestOptions | None = None,
+        *,
+        params: ListTicketDestinationsParams | None = None,
+    ) -> builtins.list[WokuRecord]:
+        """List destinations; ``params={"folderId": id}`` filters by folder."""
+        return self._client.request(
+            "get", "/v1/ticket-destinations", query=params, options=options
+        )
 
     def get(
         self, destination_id: str, options: RequestOptions | None = None
@@ -200,10 +217,13 @@ class AsyncTicketDestinations:
         self._client = client
 
     async def list(
-        self, options: RequestOptions | None = None
+        self,
+        options: RequestOptions | None = None,
+        *,
+        params: ListTicketDestinationsParams | None = None,
     ) -> builtins.list[WokuRecord]:
         return await self._client.request(
-            "get", "/v1/ticket-destinations", options=options
+            "get", "/v1/ticket-destinations", query=params, options=options
         )
 
     async def get(

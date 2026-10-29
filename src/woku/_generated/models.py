@@ -414,6 +414,15 @@ class TicketDestinationTemplateDto(BaseModel):
     """
 
 
+class ScopeKind(Enum):
+    """
+    What routes tickets here: tracker conditions or one tool folder (every tool inside it, at any depth). Never both; `folder` clears the conditions.
+    """
+
+    trackers = 'trackers'
+    folder = 'folder'
+
+
 class Kind1(Enum):
     zendesk = 'zendesk'
     custom = 'custom'
@@ -433,6 +442,14 @@ class V1CreateTicketDestinationDto(BaseModel):
     aiContext: Annotated[Optional[str], Field(max_length=2000)] = None
     """
     Per-destination AI triage context.
+    """
+    scopeKind: Optional[ScopeKind] = 'trackers'
+    """
+    What routes tickets here: tracker conditions or one tool folder (every tool inside it, at any depth). Never both; `folder` clears the conditions.
+    """
+    folderId: Optional[str] = None
+    """
+    The tool folder of a `folder` scope (required there).
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
@@ -456,6 +473,14 @@ class V1UpdateTicketDestinationDto(BaseModel):
     aiContext: Annotated[Optional[str], Field(max_length=2000)] = None
     """
     Per-destination AI triage context.
+    """
+    scopeKind: Optional[ScopeKind] = 'trackers'
+    """
+    What routes tickets here: tracker conditions or one tool folder (every tool inside it, at any depth). Never both; `folder` clears the conditions.
+    """
+    folderId: Optional[str] = None
+    """
+    The tool folder of a `folder` scope (required there).
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
@@ -500,6 +525,15 @@ class ActionPlanGroupMemberDto(BaseModel):
     role: Role1
 
 
+class ScopeKind2(Enum):
+    """
+    What feeds the group: tracker conditions or one tool folder (every tool inside it, at any depth). Never both.
+    """
+
+    trackers = 'trackers'
+    folder = 'folder'
+
+
 class CreateActionPlanGroupDto(BaseModel):
     notificationEmails: Optional[list[str]] = None
     """
@@ -507,9 +541,17 @@ class CreateActionPlanGroupDto(BaseModel):
     """
     name: Annotated[str, Field(examples=['Atención en tienda'], max_length=120)]
     description: Annotated[Optional[str], Field(max_length=500)] = None
-    conditions: list[ActionPlanGroupConditionDto]
+    scopeKind: Optional[ScopeKind2] = 'trackers'
     """
-    Tracker conditions; at least one row is required.
+    What feeds the group: tracker conditions or one tool folder (every tool inside it, at any depth). Never both.
+    """
+    folderId: Optional[str] = None
+    """
+    The tool folder of a `folder` scope (required there).
+    """
+    conditions: Optional[list[ActionPlanGroupConditionDto]] = None
+    """
+    Tracker conditions; at least one row is required with scopeKind `trackers`, none with `folder`.
     """
     members: list[ActionPlanGroupMemberDto]
     """
@@ -521,6 +563,15 @@ class CreateActionPlanGroupDto(BaseModel):
     """
 
 
+class ScopeKind3(Enum):
+    """
+    Switch the scope; `folder` clears the tracker conditions, `trackers` clears the folder.
+    """
+
+    trackers = 'trackers'
+    folder = 'folder'
+
+
 class UpdateActionPlanGroupDto(BaseModel):
     notificationEmails: Optional[list[str]] = None
     """
@@ -530,6 +581,14 @@ class UpdateActionPlanGroupDto(BaseModel):
     description: Annotated[Optional[str], Field(max_length=500)] = None
     """
     Empty string clears.
+    """
+    scopeKind: Optional[ScopeKind3] = None
+    """
+    Switch the scope; `folder` clears the tracker conditions, `trackers` clears the folder.
+    """
+    folderId: Optional[str] = None
+    """
+    The tool folder of a `folder` scope.
     """
     conditions: Optional[list[ActionPlanGroupConditionDto]] = None
     members: Optional[list[ActionPlanGroupMemberDto]] = None

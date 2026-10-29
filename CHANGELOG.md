@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0
+
+### Added
+
+- Support and plans by folder: ticket destinations and action plan groups
+  accept `scopeKind: "folder"` with a `folderId` (every tool inside it, at any
+  depth). `ticket_destinations.list(params={"folderId": ...})`,
+  `action_plan_groups.list({"folderId": ...})`, `tickets.list` and
+  `tickets.stats` filter by folder, and tickets expose `origin.folder`.
+- `folders.delete(id, confirm_dependents=True)` confirms deleting the
+  destinations and groups configured on the folder; without it the API answers
+  409 `FOLDER_HAS_DEPENDENTS`.
+
 ## 0.9.0
 
 ### Added

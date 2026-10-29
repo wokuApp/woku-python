@@ -78,10 +78,25 @@ class Folders:
         )
 
     def delete(
-        self, folder_id: str, options: RequestOptions | None = None
+        self,
+        folder_id: str,
+        options: RequestOptions | None = None,
+        *,
+        confirm_dependents: bool = False,
     ) -> DeletedResult:
-        """Delete a folder. Its content moves up to the parent; nothing is deleted."""
-        return self._client.request("delete", _path(folder_id), options=options)
+        """Delete a folder. Its content moves up to the parent.
+
+        Support destinations and action plan groups configured ON the folder are
+        deleted with it (with their tickets and plans): without
+        ``confirm_dependents=True`` the API answers 409 ``FOLDER_HAS_DEPENDENTS``
+        listing them.
+        """
+        return self._client.request(
+            "delete",
+            _path(folder_id),
+            query={"confirmDependents": "true"} if confirm_dependents else None,
+            options=options,
+        )
 
     def report(
         self,
@@ -196,9 +211,18 @@ class AsyncFolders:
         )
 
     async def delete(
-        self, folder_id: str, options: RequestOptions | None = None
+        self,
+        folder_id: str,
+        options: RequestOptions | None = None,
+        *,
+        confirm_dependents: bool = False,
     ) -> DeletedResult:
-        return await self._client.request("delete", _path(folder_id), options=options)
+        return await self._client.request(
+            "delete",
+            _path(folder_id),
+            query={"confirmDependents": "true"} if confirm_dependents else None,
+            options=options,
+        )
 
     async def report(
         self,

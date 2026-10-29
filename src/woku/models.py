@@ -240,12 +240,23 @@ class TicketOriginTracker(TypedDict, total=False):
     value: str
 
 
+class TicketOriginFolder(TypedDict, total=False):
+    """Tool folder when the ticket was created (absent for forms and the root)."""
+
+    id: str
+    name: str
+    #: "Stores > Santiago", root first.
+    path: str
+    ancestorIds: list[str]
+
+
 class TicketOrigin(TypedDict, total=False):
     tool: Literal["woku", "nps", "csat", "ces", "form"]
     refId: str
     instrumentId: str
     instrumentName: str
     trackers: list[TicketOriginTracker]
+    folder: TicketOriginFolder
 
 
 class Ticket(TypedDict, total=False):
