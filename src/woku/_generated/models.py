@@ -1806,6 +1806,10 @@ class PublicTicketDto(BaseModel):
     title: str
     severity: Severity
     destinationId: Optional[str] = None
+    destinationIds: Optional[list[str]] = None
+    """
+    Every destination the ticket was routed to; destinationId is the primary one.
+    """
     origin: PublicTicketOriginDto
     contentVersion: Annotated[float, Field(ge=1.0)]
     """

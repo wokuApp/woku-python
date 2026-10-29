@@ -267,6 +267,7 @@ class Ticket(TypedDict, total=False):
     title: str
     severity: Severity
     destinationId: str
+    destinationIds: list[str]
     origin: TicketOrigin
     followUp: FollowUp
     contentVersion: int

@@ -453,6 +453,10 @@ woku.folders.delete(folder["id"], confirm_dependents=True)
 A ticket destination or an action plan group listens either to tracker rows or
 to ONE tool folder: every woku, NPS, CSAT and CES tool inside it, at any depth,
 resolved when each review arrives (moving a tool out stops it counting).
+A ticket reaches every enabled destination that matches it (trackers, a folder
+and its subfolders): `ticket["destinationIds"]` lists them all and
+`ticket["destinationId"]` is the highest-priority one. Email destinations share
+one email per ticket, sent once to each address.
 
 ```python
 woku.ticket_destinations.create(
