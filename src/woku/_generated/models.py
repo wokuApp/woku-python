@@ -436,6 +436,10 @@ class V1CreateTicketDestinationDto(BaseModel):
     """
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
+    priority: Annotated[Optional[float], Field(ge=0.0, le=100.0)] = 0
+    """
+    Routing order: a higher priority is tried first; ties keep the creation order.
+    """
     kind: Kind1
 
 
@@ -456,6 +460,10 @@ class V1UpdateTicketDestinationDto(BaseModel):
     routingConditions: Optional[list[TicketRoutingConditionDto]] = None
     template: Optional[TicketDestinationTemplateDto] = None
     enabled: Optional[bool] = None
+    priority: Annotated[Optional[float], Field(ge=0.0, le=100.0)] = 0
+    """
+    Routing order: a higher priority is tried first; ties keep the creation order.
+    """
     kind: Optional[Kind1] = None
 
 
@@ -591,6 +599,66 @@ class UpdateActionPlanTaskDto(BaseModel):
     assigneeId: Optional[str] = None
     """
     Group member responsible; null/"" clears the assignee.
+    """
+
+
+class DataAppQueryRequestDTO(BaseModel):
+    id: Annotated[str, Field(max_length=64)]
+    """
+    Query id of the app spec.
+    """
+    page: Annotated[Optional[float], Field(ge=0.0)] = None
+    """
+    Page of a rows query (0-based).
+    """
+
+
+class RunDataAppQueriesBodyDTO(BaseModel):
+    queries: Annotated[list[DataAppQueryRequestDTO], Field(max_length=30)]
+    params: Optional[dict[str, Any]] = None
+    """
+    Values by param id, e.g. {"period":{"from":"-30d","to":"today"}}; text search goes through the app search param. Missing params use their default.
+    """
+    version: Annotated[Optional[float], Field(ge=1.0)] = None
+    """
+    Version to query. Omit for the current version.
+    """
+
+
+class EditDataAppBodyDTO(BaseModel):
+    baseVersion: Annotated[float, Field(ge=1.0)]
+    """
+    Current version of the app. A stale version answers 409, read the app again.
+    """
+    operations: Annotated[list[dict[str, Any]], Field(max_length=40)]
+    """
+    Operations applied all or nothing, each an object with "op" (addNode, removeNode, moveNode, updateProps, changeType, rebindData, setInteractions, addParam, updateParam, removeParam, addQuery, updateQuery, removeQuery, setTitle, upsertRequirement, removeRequirement, setAssumptions, insertSubtree).
+    """
+
+
+class CopyDataAppComponentBodyDTO(BaseModel):
+    fromVersion: Annotated[float, Field(ge=1.0)]
+    """
+    Version to copy the component from.
+    """
+    nodeId: Annotated[str, Field(max_length=64)]
+    """
+    Id of the component in that version.
+    """
+    parent: Annotated[str, Field(max_length=64)]
+    """
+    Container of the current version that receives it (for example "page").
+    """
+    index: Annotated[Optional[float], Field(ge=0.0)] = None
+    """
+    Position inside the container; omit to add it last.
+    """
+
+
+class PublishDataAppVersionBodyDTO(BaseModel):
+    accessKey: Annotated[Optional[str], Field(max_length=72, min_length=4)] = None
+    """
+    Access key of the shared link. Required the first time; omit to keep the current key.
     """
 
 

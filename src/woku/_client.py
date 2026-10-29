@@ -30,6 +30,7 @@ from .resources.action_plans import (
     AsyncActionPlans,
 )
 from .resources.company import AsyncCompany, Company
+from .resources.data_apps import AsyncDataApps, DataApps
 from .resources.dispatches import AsyncDispatches, Dispatches
 from .resources.flows import AsyncFlows, Flows
 from .resources.folder_participants import AsyncFolderParticipants, FolderParticipants
@@ -117,6 +118,7 @@ class Woku(BaseClient):
         self.action_plan_groups = ActionPlanGroups(self)
         self.tickets = Tickets(self)
         self.follow_ups = FollowUps(self)
+        self.data_apps = DataApps(self)
         self.ticket_destinations = TicketDestinations(self)
         self.dispatches = Dispatches(self)
         self.reports = Reports(self)
@@ -296,6 +298,7 @@ class AsyncWoku(BaseClient):
         self.action_plan_groups = AsyncActionPlanGroups(self)
         self.tickets = AsyncTickets(self)
         self.follow_ups = AsyncFollowUps(self)
+        self.data_apps = AsyncDataApps(self)
         self.ticket_destinations = AsyncTicketDestinations(self)
         self.dispatches = AsyncDispatches(self)
         self.reports = AsyncReports(self)

@@ -541,6 +541,45 @@ woku.folder_participants.remove(folder["id"], people[0]["id"])
 woku.folder_participants.clear(folder["id"])
 ```
 
+### Data Studio apps
+
+Read the Data Studio apps of the company with their live data, change them
+with operations and manage their versions and data tables. Every change makes
+a new version (nothing is lost) and personal data never comes back.
+
+```python
+apps = [a for a in woku.data_apps.list().data if a["kind"] == "studio"]
+
+app = woku.data_apps.get(apps[0]["id"])  # current version
+results = woku.data_apps.run_queries(
+    app["id"],
+    {"queries": [{"id": "monthly"}], "params": {"period": {"from": "-30d"}}},
+)  # {"monthly": {"ok": True, "columns": [...], "rows": [...]}}
+
+# Edit on the current version: all operations or none (a stale one is a 409).
+change = woku.data_apps.edit(
+    app["id"],
+    {
+        "baseVersion": app["currentVersion"],
+        "operations": [{"op": "setTitle", "title": "Ventas por sucursal"}],
+    },
+)
+woku.data_apps.restore(app["id"], 1)  # an earlier version as a new one
+woku.data_apps.copy_from_version(  # one component back from an earlier version
+    app["id"], {"fromVersion": 1, "nodeId": "ranking", "parent": "page"}
+)
+woku.data_apps.publish(app["id"], change["version"], {"accessKey": "clave"})
+woku.data_apps.unpublish(app["id"])  # the link stops answering
+variant = woku.data_apps.duplicate(app["id"])  # a new app to explore
+
+# Data tables: the same file name makes a new version of the table.
+with open("metas.csv", "rb") as file:
+    table = woku.data_apps.upload_table(
+        app["id"], file, filename="metas.csv", content_type="text/csv"
+    )  # queries read it as table["source"] ("table:<id>")
+tables = woku.data_apps.list_tables(app["id"])
+```
+
 ## Pagination
 
 List methods return a page you can iterate item by item across pages, or walk
@@ -597,7 +636,7 @@ woku.nps_tools.create(body, options={"idempotency_key": "my-key"})
 `trackers`, `nps_tools` / `csat_tools` / `ces_tools`, `nps` / `csat` / `ces`,
 `wokus`, `forms`, `flows`, `action_plans`, `action_plan_groups`, `tickets`,
 `ticket_destinations`, `dispatches`, `reports`, `company`, `journeys`,
-`folders`, `tools`, `journey_folders`.
+`folders`, `tools`, `journey_folders`, `data_apps`.
 
 ## License
 

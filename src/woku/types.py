@@ -84,3 +84,9 @@ class CustomTicketDestinationConfig(TypedDict):
     method: NotRequired[Literal["POST", "PUT"]]
     headers: NotRequired[dict[str, str]]
     update: NotRequired[CustomTicketUpdateConfig]
+
+
+RunDataAppQueriesParams = Union[_g.RunDataAppQueriesBodyDTO, JsonMapping]
+EditDataAppParams = Union[_g.EditDataAppBodyDTO, JsonMapping]
+PublishDataAppVersionParams = Union[_g.PublishDataAppVersionBodyDTO, JsonMapping]
+CopyDataAppComponentParams = Union[_g.CopyDataAppComponentBodyDTO, JsonMapping]

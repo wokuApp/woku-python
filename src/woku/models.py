@@ -623,3 +623,89 @@ class ResendToMissingResult(TypedDict, total=False):
     #: Missing people without a contact for the channel.
     withoutContact: int
     failed: int
+
+
+class DataApp(TypedDict, total=False):
+    """A data app of the company (``kind`` is ``"studio"`` for Data Studio apps)."""
+
+    id: str
+    title: str
+    description: str | None
+    kind: str
+    slug: str | None
+    isPublished: bool
+    publishedVersion: int | None
+    currentVersion: int | None
+    createdAt: str | None
+    updatedAt: str | None
+
+
+class DataAppVersion(TypedDict, total=False):
+    version: int
+    stage: Literal["wireframe", "built"]
+    parentVersion: int | None
+    author: Literal["agent", "user"]
+    diffSummary: dict[str, list[str]] | None
+    createdAt: str
+    spec: WokuRecord
+    validation: list[WokuRecord]
+
+
+class DataAppView(TypedDict, total=False):
+    """One version of a Data Studio app with its spec (AppSpec)."""
+
+    id: str
+    title: str
+    currentVersion: int
+    publishedVersion: int | None
+    isPublished: bool
+    slug: str | None
+    hasAccessKey: bool
+    version: DataAppVersion
+    #: Output columns per query id.
+    columns: dict[str, list[WokuRecord]]
+    versions: list[WokuRecord]
+
+
+#: Result (``ok``, ``columns``, ``rows``...) or error per query id.
+DataAppQueryResults = dict[str, WokuRecord]
+
+
+class DataAppChange(TypedDict, total=False):
+    """A new version made by an edit, a restore or a build."""
+
+    version: int
+    issues: list[WokuRecord]
+    summary: dict[str, list[str]]
+
+
+class DataAppCopy(TypedDict, total=False):
+    """The app created by a duplicate."""
+
+    id: str
+    title: str
+    currentVersion: int | None
+
+
+class DataAppPublication(TypedDict, total=False):
+    slug: str | None
+    isPublished: bool
+    publishedVersion: int | None
+
+
+class DataAppTableColumn(TypedDict, total=False):
+    name: str
+    label: str
+    type: str
+
+
+class DataAppTable(TypedDict, total=False):
+    """A data table uploaded to an app; queries read it as ``source``."""
+
+    id: str
+    source: str
+    name: str
+    fileName: str
+    version: int
+    rowCount: int
+    columns: list[DataAppTableColumn]
