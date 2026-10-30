@@ -442,7 +442,48 @@ woku.folders.update(
 )
 
 # Deleting a folder never deletes its content: it moves up to the parent.
-woku.folders.delete(folder["id"])
+# Support destinations and plan groups configured ON the folder are deleted
+# with it (with their tickets and plans): without confirmation the API answers
+# 409 FOLDER_HAS_DEPENDENTS listing them.
+woku.folders.delete(folder["id"], confirm_dependents=True)
+```
+
+### Support and plans by folder
+
+A ticket destination or an action plan group listens either to tracker rows or
+to ONE tool folder: every woku, NPS, CSAT and CES tool inside it, at any depth,
+resolved when each review arrives (moving a tool out stops it counting).
+A ticket reaches every enabled destination that matches it (trackers, a folder
+and its subfolders): `ticket["destinationIds"]` lists them all and
+`ticket["destinationId"]` is the highest-priority one. Email destinations share
+one email per ticket, sent once to each address.
+
+```python
+woku.ticket_destinations.create(
+    {
+        "name": "Store support",
+        "kind": "email",
+        "config": {"emails": ["support@acme.com"]},
+        "scopeKind": "folder",
+        "folderId": folder["id"],
+    }
+)
+woku.action_plan_groups.create(
+    {
+        "name": "Store experience",
+        "scopeKind": "folder",
+        "folderId": folder["id"],
+        "members": [{"userId": "user_id", "role": "admin"}],
+    }
+)
+
+# What listens to a folder (configured on it or on an ancestor folder).
+destinations = woku.ticket_destinations.list(params={"folderId": folder["id"]})
+groups = woku.action_plan_groups.list({"folderId": folder["id"]})
+
+# Tickets from the tools of a folder and its subfolders.
+for ticket in woku.tickets.list({"folderId": folder["id"]}):
+    print(ticket["code"], ticket.get("origin", {}).get("folder", {}).get("path"))
 ```
 
 ```python

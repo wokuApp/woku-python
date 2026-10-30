@@ -238,6 +238,18 @@ class TicketOriginTracker(TypedDict, total=False):
     trackerId: str
     name: str
     value: str
+    #: Name of the entity the value identifies (a journey name), if any.
+    label: str
+
+
+class TicketOriginFolder(TypedDict, total=False):
+    """Tool folder when the ticket was created (absent for forms and the root)."""
+
+    id: str
+    name: str
+    #: "Stores > Santiago", root first.
+    path: str
+    ancestorIds: list[str]
 
 
 class TicketOrigin(TypedDict, total=False):
@@ -246,6 +258,7 @@ class TicketOrigin(TypedDict, total=False):
     instrumentId: str
     instrumentName: str
     trackers: list[TicketOriginTracker]
+    folder: TicketOriginFolder
 
 
 class Ticket(TypedDict, total=False):
@@ -256,6 +269,7 @@ class Ticket(TypedDict, total=False):
     title: str
     severity: Severity
     destinationId: str
+    destinationIds: list[str]
     origin: TicketOrigin
     followUp: FollowUp
     contentVersion: int
