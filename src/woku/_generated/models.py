@@ -1721,6 +1721,10 @@ class Tracker(BaseModel):
     trackerId: Optional[str] = None
     name: Optional[str] = None
     value: Optional[str] = None
+    label: Optional[str] = None
+    """
+    Name of the entity the value identifies (a journey name), if any.
+    """
 
 
 class PublicTicketOriginDto(BaseModel):

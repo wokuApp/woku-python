@@ -11,6 +11,8 @@
   `tickets.stats` filter by folder, and tickets expose `origin.folder`.
 - `Ticket.destinationIds`: every destination a ticket reached
   (`destinationId` is the highest-priority one).
+- `TicketOriginTracker.label`: the name of the entity a tracker value
+  identifies (the journey name behind a journey id).
 - `folders.delete(id, confirm_dependents=True)` confirms deleting the
   destinations and groups configured on the folder; without it the API answers
   409 `FOLDER_HAS_DEPENDENTS`.

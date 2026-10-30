@@ -238,6 +238,8 @@ class TicketOriginTracker(TypedDict, total=False):
     trackerId: str
     name: str
     value: str
+    #: Name of the entity the value identifies (a journey name), if any.
+    label: str
 
 
 class TicketOriginFolder(TypedDict, total=False):
