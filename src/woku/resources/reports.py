@@ -1,4 +1,4 @@
-"""Read NPS reports (``/v1/reports``)."""
+"""Read company reports (``/v1/reports``)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Reports:
-    """Read NPS reports."""
+    """Read company reports."""
 
     def __init__(self, client: Woku) -> None:
         self._client = client
@@ -27,6 +27,16 @@ class Reports:
         """Company-level NPS report."""
         return self._client.request(
             "get", "/v1/reports/company-nps", query=params, options=options
+        )
+
+    def company_woku(
+        self,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Report over every woku of the company (the root and every folder)."""
+        return self._client.request(
+            "get", "/v1/reports/company-woku", query=params, options=options
         )
 
     def nps_tool(
@@ -58,6 +68,16 @@ class AsyncReports:
         """Company-level NPS report."""
         return await self._client.request(
             "get", "/v1/reports/company-nps", query=params, options=options
+        )
+
+    async def company_woku(
+        self,
+        params: Mapping[str, Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> WokuRecord:
+        """Report over every woku of the company (the root and every folder)."""
+        return await self._client.request(
+            "get", "/v1/reports/company-woku", query=params, options=options
         )
 
     async def nps_tool(

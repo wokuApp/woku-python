@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator, Iterator, Mapping
 from typing import TYPE_CHECKING, Any
 
 from .._options import RequestOptions
-from ..models import Folder, MoveResult, ToolItem, ToolsStats
+from ..models import Folder, FolderToolMetrics, MoveResult, ToolItem, ToolsStats
 from ..types import MoveToolItemsParams
 
 if TYPE_CHECKING:
@@ -165,6 +165,23 @@ class Tools:
             "get", "/v1/tools/stats", query=params, options=options
         )
 
+    def metrics(
+        self,
+        params: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> FolderToolMetrics:
+        """Metrics of every tool of one type in the company (its company report).
+
+        ``params``: ``type`` (``woku``, ``nps``, ``csat`` or ``ces``, required),
+        ``days`` (7, 30 by default, 90, or 0 for the whole history) or a custom
+        range with ``from`` and ``to`` (``YYYY-MM-DD`` UTC days, both inclusive).
+        Same shape as ``folders.metrics``, over the root and every folder; one
+        type per call, so scales are never mixed.
+        """
+        return self._client.request(
+            "get", "/v1/tools/metrics", query=params, options=options
+        )
+
     def move(
         self, body: MoveToolItemsParams, options: RequestOptions | None = None
     ) -> MoveResult:
@@ -209,6 +226,15 @@ class AsyncTools:
     ) -> ToolsStats:
         return await self._client.request(
             "get", "/v1/tools/stats", query=params, options=options
+        )
+
+    async def metrics(
+        self,
+        params: Mapping[str, Any],
+        options: RequestOptions | None = None,
+    ) -> FolderToolMetrics:
+        return await self._client.request(
+            "get", "/v1/tools/metrics", query=params, options=options
         )
 
     async def move(

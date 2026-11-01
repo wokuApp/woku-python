@@ -104,6 +104,22 @@ CASES = [
     ("flows", "delete", ["fl1"], "DELETE", "/v1/flows/fl1", "/v1/flows/{id}"),
     (
         "tools",
+        "metrics",
+        [{"type": "csat", "days": 7}],
+        "GET",
+        "/v1/tools/metrics",
+        "/v1/tools/metrics",
+    ),
+    (
+        "reports",
+        "company_woku",
+        [],
+        "GET",
+        "/v1/reports/company-woku",
+        "/v1/reports/company-woku",
+    ),
+    (
+        "tools",
         "stats",
         [{"folderId": "f1"}],
         "GET",
