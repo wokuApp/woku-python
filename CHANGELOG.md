@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0
+
+### Added
+
+- Company reports (RP-0060): `tools.metrics({"type": ...})` returns the
+  per-tool figures of every tool of one type in the company (the metrics of
+  the company report of that type, same shape as `folders.metrics`), and
+  `reports.company_woku()` returns the AI report over every woku of the
+  company.
+
+### Fixed
+
+- A missing or invalid API key now raises `AuthenticationError`: the API
+  answers `401` (it used to answer `403`, which raised
+  `PermissionDeniedError`). The bundled v1 spec documents the `401` on every
+  keyed operation (SV-0027).
+
 ## 0.10.0
 
 ### Added

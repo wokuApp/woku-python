@@ -428,6 +428,11 @@ september = woku.folders.metrics(
 for tool in metrics["tools"]:
     print(tool["name"], tool["current"]["headline"]["value"])
 
+# The same figures for every tool of ONE type in the whole company (the metrics
+# of the company report of that type), and the AI report over every woku.
+company_csat = woku.tools.metrics({"type": "csat", "days": 30})
+woku_report = woku.reports.company_woku()
+
 # WhatsApp numbers alerted when a comment on any tool of the folder is an
 # improvement (wokus, NPS, CSAT and CES). "allReviews": True alerts every
 # review, recognitions too. The list replaces the previous one.

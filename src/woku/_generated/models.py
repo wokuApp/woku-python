@@ -1709,6 +1709,19 @@ class UpdateCesToolBodyDTO(BaseModel):
     localizedContent: Optional[list[CesToolLocalizedContentBodyDTO]] = None
 
 
+class PublicTicketOriginFolderDto(BaseModel):
+    id: str
+    name: str
+    path: str
+    """
+    Breadcrumb, root first ("Tiendas > Santiago").
+    """
+    ancestorIds: list[str]
+    """
+    The folder first, then its parents up to the root.
+    """
+
+
 class Tool1(Enum):
     woku = 'woku'
     nps = 'nps'
@@ -1733,6 +1746,10 @@ class PublicTicketOriginDto(BaseModel):
     instrumentId: Optional[str] = None
     instrumentName: Optional[str] = None
     trackers: Optional[list[Tracker]] = None
+    folder: Optional[PublicTicketOriginFolderDto] = None
+    """
+    Folder of the source tool, when it lives in one (SV-0021).
+    """
 
 
 class State1(Enum):
