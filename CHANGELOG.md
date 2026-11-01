@@ -10,6 +10,13 @@
   `reports.company_woku()` returns the AI report over every woku of the
   company.
 
+### Fixed
+
+- A missing or invalid API key now raises `AuthenticationError`: the API
+  answers `401` (it used to answer `403`, which raised
+  `PermissionDeniedError`). The bundled v1 spec documents the `401` on every
+  keyed operation (SV-0027).
+
 ## 0.10.0
 
 ### Added
