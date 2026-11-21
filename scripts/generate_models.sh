@@ -7,7 +7,9 @@
 # changes. The output is committed so builds and CI never need the generator.
 #
 # Requires uv (https://docs.astral.sh/uv/). The generator runs through uvx, so
-# nothing is installed into the project environment.
+# nothing is installed into the project environment. Its interpreter is pinned
+# to 3.12: datamodel-code-generator 0.26.5 fails to start on Python 3.14 (the
+# system Python of newer CI runners).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,7 +18,7 @@ OUTPUT_ROOT="${WOKU_CODEGEN_OUTPUT_ROOT:-$ROOT/src/woku/_generated}"
 mkdir -p "$OUTPUT_ROOT"
 OUT="$OUTPUT_ROOT/models.py"
 
-uvx --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
+uvx --python 3.12 --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
   --input "$SPEC" \
   --input-file-type openapi \
   --output "$OUT" \
@@ -90,7 +92,7 @@ spec["components"] = {"schemas": selected}
 with open(sys.argv[2], "w", encoding="utf-8") as output:
     json.dump(spec, output)
 PY
-uvx --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
+uvx --python 3.12 --from 'datamodel-code-generator==0.26.5' datamodel-codegen \
   --input "$JOURNEY_SPEC" \
   --input-file-type openapi \
   --output "$OUTPUT_ROOT/journeys.py" \
