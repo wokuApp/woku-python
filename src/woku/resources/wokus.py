@@ -79,7 +79,11 @@ class Wokus:
         body: UpdateWokuSettingsParams,
         options: RequestOptions | None = None,
     ) -> Woku:
-        """Apply the boolean settings idempotently (closed/reviewsDisabled/...)."""
+        """Apply the woku settings idempotently.
+
+        The booleans (closed/reviewsDisabled/...) and the declared usage
+        (``usageContext``; ``None`` clears it).
+        """
         return self._client.request(
             "patch",
             f"/v1/wokus/{quote(woku_id, safe='')}/settings",
@@ -194,7 +198,11 @@ class AsyncWokus:
         body: UpdateWokuSettingsParams,
         options: RequestOptions | None = None,
     ) -> Woku:
-        """Apply the boolean settings idempotently (closed/reviewsDisabled/...)."""
+        """Apply the woku settings idempotently.
+
+        The booleans (closed/reviewsDisabled/...) and the declared usage
+        (``usageContext``; ``None`` clears it).
+        """
         return await self._client.request(
             "patch",
             f"/v1/wokus/{quote(woku_id, safe='')}/settings",

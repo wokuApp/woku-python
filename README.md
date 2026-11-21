@@ -520,6 +520,16 @@ stays frozen:
 woku.nps_tools.update("nps_tool_id", {"onlyOneResponsePerClient": True})
 ```
 
+A woku can declare where it will be used: `usageContext` is `"event"` (one-off event or session), `"fixed"`
+(fixed place with a permanent QR or link), `"list"` (sent to a list by email or
+WhatsApp) or `None` (not declared). It comes back on every woku and is set or
+cleared with `update_settings`, also once the woku has reviews:
+
+```python
+woku.wokus.update_settings("woku_id", {"usageContext": "event"})
+woku.wokus.update_settings("woku_id", {"usageContext": None})  # clear
+```
+
 ### Scheduled reports
 
 Email the PDF report of a folder (every tool of its subtree, optionally with the
