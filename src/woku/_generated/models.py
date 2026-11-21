@@ -751,6 +751,16 @@ class UpdateWokuBodyDTO(BaseModel):
     localizedContent: Optional[list[V1WokuLocalizedContentDTO]] = None
 
 
+class UsageContext(Enum):
+    """
+    Declared usage of the woku: event (one-off event or session), fixed (fixed place with a permanent QR or link) or list (sent to a list by email or WhatsApp). null clears it; absent leaves it as is.
+    """
+
+    event = 'event'
+    fixed = 'fixed'
+    list = 'list'
+
+
 class UpdateWokuSettingsBodyDTO(BaseModel):
     closed: Optional[bool] = None
     """
@@ -767,6 +777,10 @@ class UpdateWokuSettingsBodyDTO(BaseModel):
     onlyOneReviewPerClient: Optional[bool] = None
     """
     Whether each client may leave only one review.
+    """
+    usageContext: Optional[UsageContext] = None
+    """
+    Declared usage of the woku: event (one-off event or session), fixed (fixed place with a permanent QR or link) or list (sent to a list by email or WhatsApp). null clears it; absent leaves it as is.
     """
 
 

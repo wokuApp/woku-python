@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+### Added
+
+- Wokus expose their declared usage, `usageContext` (`"event"`, `"fixed"`,
+  `"list"` or `None`), and `wokus.update_settings` sets or clears it (also once
+  the woku has reviews). The bundled v1 spec and the request models include the
+  new setting.
+
 ## 0.11.0
 
 ### Added

@@ -356,6 +356,8 @@ class Woku(TypedDict, total=False):
     reviewsDisabled: bool
     anonymousDisabled: bool
     onlyOneReviewPerClient: bool
+    # Declared usage: one-off event, fixed place (permanent QR or link) or list send.
+    usageContext: Literal["event", "fixed", "list"] | None
     availableLocales: list[str]
     defaultLocale: str
     createdAt: str

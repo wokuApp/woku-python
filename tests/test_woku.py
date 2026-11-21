@@ -194,6 +194,33 @@ def test_move_woku_to_root_sends_explicit_null_folder() -> None:
     assert _body(route.calls.last.request) == {"folderId": None}
 
 
+@respx.mock
+def test_update_settings_sets_and_clears_the_declared_usage() -> None:
+    route = respx.patch(f"{BASE}/v1/wokus/w1/settings").mock(
+        return_value=httpx.Response(200, json={"_id": "w1", "usageContext": "event"})
+    )
+    result = woku().wokus.update_settings("w1", {"usageContext": "event"})
+    assert _body(route.calls.last.request) == {"usageContext": "event"}
+    assert result["usageContext"] == "event"
+
+    woku().wokus.update_settings("w1", {"usageContext": None})
+    assert _body(route.calls.last.request) == {"usageContext": None}
+
+
+def test_update_settings_model_validates_the_declared_usage() -> None:
+    from pydantic import ValidationError
+
+    from woku._generated import models as _g
+
+    for value in ("event", "fixed", "list", None):
+        model = _g.UpdateWokuSettingsBodyDTO.model_validate({"usageContext": value})
+        assert model.model_dump(mode="json", exclude_unset=True) == {
+            "usageContext": value
+        }
+    with pytest.raises(ValidationError):
+        _g.UpdateWokuSettingsBodyDTO.model_validate({"usageContext": "party"})
+
+
 # --- async facade -----------------------------------------------------------
 
 
